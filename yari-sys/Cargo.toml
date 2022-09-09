@@ -1,0 +1,22 @@
+[package]
+name = "yari-sys"
+version = "1.0.0"
+authors = ["Matej Kastak <matej.kastak@avast.com>"]
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+log = "0.4.17"
+nom = "7.1.1"
+regex = "1.6.0"
+thiserror = "1.0.32"
+lazy_static = "1.4.0"
+
+[build-dependencies]
+bindgen = "0.60.1"
+
+[features]
+avast = []
+
+[dev-dependencies]
+env_logger = "0.9.0"

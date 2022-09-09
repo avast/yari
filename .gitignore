@@ -1,0 +1,8 @@
+*.html
+*.so
+.mypy_cache/
+__pycache__/
+coverage/
+dist/
+env/
+target/

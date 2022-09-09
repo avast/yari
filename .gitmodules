@@ -1,0 +1,3 @@
+[submodule "yari-sys/yara"]
+	path = yari-sys/yara
+	url = git@github.com:MatejKastak/yara.git
