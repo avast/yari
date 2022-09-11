@@ -184,7 +184,12 @@ fn test_invalid_symbol_as_function() {
     let mut context = common::context();
 
     let res = context.eval("hash()");
-    assert_eq!(res, Err(yari_sys::error::YariError::SymbolNotFound));
+    assert_eq!(
+        res,
+        Err(yari_sys::error::YariError::SymbolNotFound(
+            "hash".to_string()
+        ))
+    );
 }
 
 #[test]
@@ -192,7 +197,12 @@ fn test_invalid_symbol() {
     let mut context = common::context();
 
     let res = context.eval("time.then()");
-    assert_eq!(res, Err(yari_sys::error::YariError::SymbolNotFound));
+    assert_eq!(
+        res,
+        Err(yari_sys::error::YariError::SymbolNotFound(
+            "time.then".to_string()
+        ))
+    );
 }
 
 #[test]
@@ -200,7 +210,12 @@ fn test_invalid_access_to_array() {
     let mut context = common::context();
 
     let res = context.eval("pe.resources.type_string");
-    assert_eq!(res, Err(yari_sys::error::YariError::SymbolNotFound));
+    assert_eq!(
+        res,
+        Err(yari_sys::error::YariError::SymbolNotFound(
+            "pe.resources.type_string".to_string()
+        ))
+    );
 }
 
 #[test]
@@ -281,7 +296,12 @@ fn test_dictionary() {
 fn test_invalid_dictionary_access() {
     let mut context = common::context_with_pe_signed_sample();
     let res = context.eval("pe.version_info[\"InvalidKey\"]");
-    assert_eq!(res, Err(yari_sys::error::YariError::SymbolNotFound));
+    assert_eq!(
+        res,
+        Err(yari_sys::error::YariError::SymbolNotFound(
+            "pe.version_info[\"InvalidKey\"]".to_string()
+        ))
+    );
 }
 
 #[test]
@@ -289,7 +309,12 @@ fn test_invalid_arguments_to_function() {
     let mut context = common::context();
 
     let res = context.eval("pe.imphash(0)");
-    assert_eq!(res, Err(yari_sys::error::YariError::SymbolNotFound));
+    assert_eq!(
+        res,
+        Err(yari_sys::error::YariError::SymbolNotFound(
+            "pe.imphash".to_string()
+        ))
+    );
 }
 
 #[test]
@@ -331,7 +356,10 @@ fn test_invalid_rule_context() {
 fn test_invalid_complex_value() {
     let mut context = common::context_with_pe_sample_and_rule();
     let res = context.eval("r|this is not valid");
-    assert_eq!(res, Err(yari_sys::error::YariError::SymbolNotFound));
+    assert_eq!(
+        res,
+        Err(yari_sys::error::YariError::SymbolNotFound("r".to_string()))
+    );
 }
 
 #[test]

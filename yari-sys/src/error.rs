@@ -8,8 +8,8 @@ pub enum YariError {
     #[error("cannot evaluate the expression")]
     EvalError,
 
-    #[error("cannot find a symbol")]
-    SymbolNotFound,
+    #[error("cannot find symbol '{}'", .0)]
+    SymbolNotFound(String),
 
     #[error("module data expected in format 'MODULE=DATA'")]
     ModuleDataError,

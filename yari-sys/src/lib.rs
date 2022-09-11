@@ -860,12 +860,12 @@ impl Context {
         let obj_ref = self
             .objects
             .get_mut(name)
-            .ok_or(YariError::SymbolNotFound)?;
+            .ok_or_else(|| YariError::SymbolNotFound(name.to_string()))?;
 
         let obj_ptr = *obj_ref;
 
         if unsafe { (*obj_ptr).type_ } != OBJECT_TYPE_FUNCTION as i8 {
-            return Err(YariError::SymbolNotFound);
+            return Err(YariError::SymbolNotFound(name.to_string()));
         };
 
         let func_ptr = obj_ptr.cast::<YR_OBJECT_FUNCTION>();
@@ -896,7 +896,7 @@ impl Context {
             }
         }
 
-        Err(YariError::SymbolNotFound)
+        Err(YariError::SymbolNotFound(name.to_string()))
     }
 
     unsafe fn return_obj_if_type_ok(
@@ -909,7 +909,7 @@ impl Context {
             | OBJECT_TYPE_FLOAT
             | OBJECT_TYPE_DICTIONARY
             | OBJECT_TYPE_ARRAY => Ok(obj),
-            _ => Err(YariError::SymbolNotFound),
+            _ => Err(YariError::EvalError),
         }
     }
 
@@ -918,7 +918,7 @@ impl Context {
         let obj_ptr = *self
             .objects
             .get_mut(name)
-            .ok_or(YariError::SymbolNotFound)?;
+            .ok_or_else(|| YariError::SymbolNotFound(name.to_string()))?;
 
         unsafe { self.return_obj_if_type_ok(obj_ptr) }
     }
@@ -1141,7 +1141,7 @@ impl Context {
                     if !obj_ptr.is_null() {
                         Ok(unsafe { YrValue::from(obj_ptr) })
                     } else {
-                        Err(YariError::SymbolNotFound)
+                        Err(YariError::SymbolNotFound(name.to_string()))
                     }
                 }
             }
