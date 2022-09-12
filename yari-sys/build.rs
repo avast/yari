@@ -19,6 +19,16 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
     }
 }
 
+/// Print the linking directive. Check the `YARI_STATIC_BUILD` env variable to determine if we
+/// should link statically.
+fn link_lib(name: &str) {
+    let static_build = option_env!("YARI_STATIC_BUILD").is_some();
+    println!(
+        "cargo:rustc-link-lib{}={name:}",
+        if static_build { "=static" } else { "" }
+    );
+}
+
 fn main() {
     let ignored_macros = IgnoreMacros(
         vec![
@@ -33,17 +43,17 @@ fn main() {
         .collect(),
     );
 
-    println!("cargo:rustc-link-lib=static=yara");
-    println!("cargo:rustc-link-lib=crypto");
-    println!("cargo:rustc-link-lib=magic");
-    println!("cargo:rustc-link-lib=jansson");
-    println!("cargo:rustc-link-lib=z");
+    link_lib("yara");
+    link_lib("crypto");
+    link_lib("magic");
+    link_lib("jansson");
+    link_lib("z");
 
     if let Some(lib_dirs) = std::env::var_os("YARI_LIB_DIRS") {
         for lib in std::env::split_paths(&lib_dirs) {
             println!(
                 "cargo:rustc-link-search={}",
-                lib.to_str().expect("Cannot process YARI_LIBS_DIR")
+                lib.to_str().expect("Cannot process YARI_LIB_DIRS")
             );
         }
     }
