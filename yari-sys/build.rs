@@ -39,6 +39,15 @@ fn main() {
     println!("cargo:rustc-link-lib=jansson");
     println!("cargo:rustc-link-lib=z");
 
+    if let Some(lib_dirs) = std::env::var_os("YARI_LIB_DIRS") {
+        for lib in std::env::split_paths(&lib_dirs) {
+            println!(
+                "cargo:rustc-link-search={}",
+                lib.to_str().expect("Cannot process YARI_LIBS_DIR")
+            );
+        }
+    }
+
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
 
     let yara_repo_root = option_env!("YARI_YARA_ROOT")
