@@ -14,8 +14,8 @@ pub enum YariError {
     #[error("module data expected in format 'MODULE=DATA'")]
     ModuleDataError,
 
-    #[error("unknown module")]
-    UnknownModule,
+    #[error("unknown module '{}'", .0)]
+    UnknownModule(String),
 
     #[error("context builder error: '{}'", .0)]
     ContextBuilderError(String),
