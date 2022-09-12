@@ -30,6 +30,15 @@ impl Module {
 impl std::str::FromStr for Module {
     type Err = YariError;
 
+    /// ```
+    /// use yari_sys::Module;
+    /// use yari_sys::YariError;
+    ///
+    /// assert_eq!("cuckoo".parse(), Ok(Module::Cuckoo));
+    /// assert_eq!("time".parse(), Ok(Module::Time));
+    /// assert_eq!("".parse::<yari_sys::Module>(), Err(YariError::UnknownModule("".to_string())));
+    /// assert_eq!("unknown".parse::<yari_sys::Module>(), Err(YariError::UnknownModule("unknown".to_string())));
+    /// ```
     fn from_str(s: &str) -> std::result::Result<Self, YariError> {
         match s.to_lowercase().as_str() {
             "cuckoo" => Ok(Module::Cuckoo),
@@ -40,7 +49,7 @@ impl std::str::FromStr for Module {
             "math" => Ok(Module::Math),
             "pe" => Ok(Module::Pe),
             "time" => Ok(Module::Time),
-            _ => Err(YariError::UnknownModule),
+            _ => Err(YariError::UnknownModule(s.to_string())),
         }
     }
 }
