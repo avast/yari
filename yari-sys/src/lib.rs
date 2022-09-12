@@ -70,7 +70,7 @@ use crate::bindings::YR_STRING;
 use crate::bindings::YR_STRUCTURE_MEMBER;
 use crate::bindings::YR_UNDEFINED;
 use crate::bindings::YR_VALUE;
-use crate::error::YariError;
+pub use crate::error::YariError;
 pub use crate::module::Module;
 use crate::parser::{parse, Argument, Expression};
 use crate::utils::expression_to_rules_with_condition;
