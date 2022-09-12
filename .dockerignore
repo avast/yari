@@ -1,0 +1,5 @@
+**/.git
+**/env
+**/target
+docker/
+*.o
