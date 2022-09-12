@@ -1,3 +1,5 @@
+**/target
+**/coverage
 *.html
 *.so
 .mypy_cache/
