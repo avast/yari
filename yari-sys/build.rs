@@ -62,10 +62,10 @@ fn main() {
 
     let yara_repo_root = option_env!("YARI_YARA_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|| crate_root.join("./yara"));
+        .unwrap_or_else(|| crate_root.join("yara"));
 
-    let libyara_dir = yara_repo_root.join("libyara/.libs/");
-    let libyara_includes = yara_repo_root.join("libyara/include/");
+    let libyara_dir = yara_repo_root.join("libyara").join(".libs");
+    let libyara_includes = yara_repo_root.join("libyara").join("include");
 
     println!(
         "cargo:rustc-link-search={}",
