@@ -29,6 +29,20 @@ fn link_lib(name: &str) {
     );
 }
 
+#[cfg(target_os = "windows")]
+fn link_windows() {
+    link_lib("libyara64");
+}
+
+#[cfg(target_os = "linux")]
+fn link_linux() {
+    link_lib("yara");
+    link_lib("crypto");
+    link_lib("magic");
+    link_lib("jansson");
+    link_lib("z");
+}
+
 fn main() {
     let ignored_macros = IgnoreMacros(
         vec![
@@ -43,11 +57,11 @@ fn main() {
         .collect(),
     );
 
-    link_lib("yara");
-    link_lib("crypto");
-    link_lib("magic");
-    link_lib("jansson");
-    link_lib("z");
+    #[cfg(target_os = "linux")]
+    link_linux();
+
+    #[cfg(target_os = "windows")]
+    link_windows();
 
     if let Some(lib_dirs) = std::env::var_os("YARI_LIB_DIRS") {
         for lib in std::env::split_paths(&lib_dirs) {
