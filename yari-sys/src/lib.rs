@@ -1235,17 +1235,17 @@ impl Context {
         self.context.rule_matches_flags = yr_calloc(
             size_of::<u64>() as u64,
             YR_BITMASK_SIZE!((*self.context.rules).num_rules) as u64,
-        ) as *mut u64;
+        ) as *mut std::os::raw::c_ulong;
 
         self.context.ns_unsatisfied_flags = yr_calloc(
             size_of::<u64>() as u64,
             YR_BITMASK_SIZE!((*self.context.rules).num_namespaces) as u64,
-        ) as *mut u64;
+        ) as *mut std::os::raw::c_ulong;
 
         self.context.strings_temp_disabled = yr_calloc(
             size_of::<u64>() as u64,
             YR_BITMASK_SIZE!((*self.context.rules).num_strings) as u64,
-        ) as *mut u64;
+        ) as *mut std::os::raw::c_ulong;
 
         self.context.matches = yr_calloc(
             (*self.context.rules).num_strings as u64,
