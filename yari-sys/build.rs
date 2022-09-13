@@ -78,6 +78,20 @@ fn main() {
         .map(PathBuf::from)
         .unwrap_or_else(|| crate_root.join("yara"));
 
+    // Windows link dir
+    println!(
+        "cargo:rustc-link-search={}",
+        crate_root
+            .join("yara")
+            .join("windows")
+            .join("vs2017")
+            .join("libyara")
+            .join("Release")
+            .to_str()
+            .unwrap()
+    );
+
+    // Linux link dir
     let libyara_dir = yara_repo_root.join("libyara").join(".libs");
     let libyara_includes = yara_repo_root.join("libyara").join("include");
 
