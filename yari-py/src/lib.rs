@@ -61,7 +61,8 @@ impl Context {
     #[new]
     fn new(
         sample: Option<&PyString>,
-        rule: Option<&PyString>,
+        rule_string: Option<&PyString>,
+        rule_path: Option<&PyString>,
         module_data: Option<&PyDict>,
     ) -> PyResult<Self> {
         let mut builder = ContextBuilder::default();
@@ -70,10 +71,25 @@ impl Context {
             builder = builder.with_sample(Some(sample.to_string()));
         }
 
-        if let Some(rule) = rule {
-            builder = builder.with_rule_file(Some(rule.to_string()));
+        // Use either `rule_string` or `rule_path`. Invalid configuration of arguments raises
+        // exception.
+        match (rule_string, rule_path) {
+            (Some(rule_string), None) => {
+                builder = builder.with_rule_string(Some(rule_string.to_string()))
+            }
+            (None, Some(rule_path)) => {
+                builder = builder.with_rule_file(Some(rule_path.to_string()))
+            }
+            (Some(_), Some(_)) => {
+                return Err(YariError::new_err(
+                    "detected Context with both `rule_string` and `rule_path`, specify only one of the sources".to_string(),
+                ))
+            }
+            // Create empty context if no source was specified
+            (_, _) => {},
         }
 
+        // Add the module data
         if let Some(module_data) = module_data {
             for (module, data) in module_data {
                 if let (Ok(module), Ok(data)) =

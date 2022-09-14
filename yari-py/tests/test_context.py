@@ -12,4 +12,16 @@ def test_core():
 )
 def test_raise(context_kwargs):
     with pytest.raises(yari.YariError) as e:
-        c = yari.Context(**context_kwargs)
+        _ = yari.Context(**context_kwargs)
+
+
+def test_context_with_rule_path(tmp_path):
+    rule_path = tmp_path / "test.yar"
+    rule_path.write_text(
+        """rule test {
+    condition:
+        true
+}"""
+    )
+    c = yari.Context(rule_path=str(rule_path))
+    c.eval("time.now()")
