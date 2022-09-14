@@ -1,0 +1,73 @@
+FROM quay.io/pypa/manylinux2014_x86_64
+
+ENV PATH /root/.cargo/bin:$PATH
+
+RUN curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.63.0 -y
+
+RUN mkdir -p /tmp/jansson \
+    && cd /tmp/jansson \
+    && curl -O https://digip.org/jansson/releases/jansson-2.13.tar.gz \
+    && tar vxf jansson-2.13.tar.gz \
+    && cd jansson-2.13 \
+    && CFLAGS="-fPIC" ./configure \
+    && make -j$(nproc) \
+    && make install
+
+RUN mkdir -p /tmp/openssl \
+    && cd /tmp/openssl \
+    && curl -O https://www.openssl.org/source/openssl-1.1.1q.tar.gz \
+    && tar vxf openssl-1.1.1q.tar.gz \
+    && cd  openssl-1.1.1q \
+    && CFLAGS="-fPIC" ./config no-shared \
+    && make -j$(nproc) \
+    && make install_sw
+
+RUN mkdir -p /tmp/file \
+    && cd /tmp/file \
+    && curl -O https://astron.com/pub/file/file-5.42.tar.gz \
+    && tar vxf file-5.42.tar.gz \
+    && cd file-5.42 \
+    && CFLAGS="-fPIC" ./configure --enable-static --disable-shared \
+    && make -j$(nproc) \
+    && make check \
+    && make install
+
+RUN mkdir -p /tmp/zlib \
+    && cd /tmp/zlib \
+    && curl -O https://www.zlib.net/zlib-1.2.12.tar.gz \
+    && tar vxf zlib-1.2.12.tar.gz \
+    && cd zlib-1.2.12 \
+    && CFLAGS="-fPIC" ./configure --static \
+    && make -j$(nproc) \
+    && make check \
+    && make install
+
+WORKDIR /yari
+
+RUN yum install -y \
+    glibc-static \
+    libtool \
+    pkgconfig \
+    python3
+
+# For some reason we need to split this into two commands
+# maturin has to have those two deps installed beforehand
+RUN python3 -m pip install tomli setuptools_rust && \
+    python3 -m pip install maturin
+
+COPY yari-sys/yara /yari/yari-sys/yara
+
+# For some reason the `yara` build fails with invalid syntax on the `./configure` step
+# This is a work around but it seems to work nicely
+RUN cp /usr/share/aclocal/pkg.m4 /yari/yari-sys/yara/m4
+
+RUN cd ./yari-sys/yara \
+    && ./bootstrap.sh \
+    && LDFLAGS="-static" LIBS="-lz -ldl" CFLAGS="-fPIC" ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --enable-static --disable-shared \
+    && make clean \
+    && make -j$(nproc)
+
+COPY . /yari
+
+RUN cd yari-py \
+    && YARI_USE_BUNDLED_BINDINGS=1 YARI_LIB_DIRS="/usr/x86_64-unknown-linux-gnu/lib/:/usr/lib/x86_64-linux-gnu/" maturin build

@@ -1,0 +1,15 @@
+[package]
+name = "yari-py"
+version = "1.0.0"
+description = "Python bindings for YARI."
+authors = ["Matej Kastak <matej.kastak@avast.com>"]
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "yari"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.16.5", features = ["extension-module"] }
+yari-sys = { path = "../yari-sys" }

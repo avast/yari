@@ -1,0 +1,68 @@
+# This docker file is kept only as a reference, it has no use for now
+# In the future we can use it to build a static `yari` binary and distribute that
+
+FROM rust:alpine
+
+WORKDIR /yari
+
+RUN apk update && \
+    apk add --upgrade \
+    autoconf \
+    automake \
+    clang \
+    clang-dev \
+    clang-extra-tools \
+    clang-libs \
+    clang-static \
+    gcc \
+    libtool \
+    llvm13 \
+    make \
+    musl-dev \
+    openssl-dev \
+    openssl-libs-static \
+    pkgconf \
+    zlib \
+    zlib-static
+
+RUN mkdir -p /tmp/jansson \
+    && cd /tmp/jansson \
+    && wget https://digip.org/jansson/releases/jansson-2.13.tar.gz \
+    && tar vxf jansson-2.13.tar.gz \
+    && cd jansson-2.13 \
+    && ./configure \
+    && make -j$(nproc) \
+    && make install
+
+RUN mkdir -p /tmp/file \
+    && cd /tmp/file \
+    && wget https://astron.com/pub/file/file-5.42.tar.gz \
+    && tar vxf file-5.42.tar.gz \
+    && cd file-5.42 \
+    && ./configure --enable-static --disable-shared \
+    && make -j$(nproc) \
+    && make check \
+    && make install
+
+COPY yari-sys/yara /yari/yari-sys/yara
+
+RUN cd ./yari-sys/yara \ 
+    && ./bootstrap.sh \
+    && LDFLAGS="-static" CFLAGS="-fPIC" ./configure -enable-cuckoo --enable-magic --enable-dotnet --with-crypto --disable-shared --enable-static \
+    && make clean \
+    && make -j$(nproc)
+
+COPY . /yari
+
+RUN YARI_USE_BUNDLED_BINDINGS=1 YARI_STATIC_BUILD=1 cargo build -vv -p yari-cli --release
+
+# TODO: Merge with the first installation step
+RUN apk add --upgrade \
+    patchelf \
+    py3-pip \
+    python3
+
+RUN pip3 install maturin
+
+RUN cd yari-py \
+    && maturin build

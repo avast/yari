@@ -19,6 +19,30 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
     }
 }
 
+/// Print the linking directive. Check the `YARI_STATIC_BUILD` env variable to determine if we
+/// should link statically.
+fn link_lib(name: &str) {
+    let static_build = option_env!("YARI_STATIC_BUILD").is_some();
+    println!(
+        "cargo:rustc-link-lib{}={name:}",
+        if static_build { "=static" } else { "" }
+    );
+}
+
+#[cfg(target_os = "windows")]
+fn link_windows() {
+    link_lib("libyara64");
+}
+
+#[cfg(target_os = "linux")]
+fn link_linux() {
+    link_lib("yara");
+    link_lib("crypto");
+    link_lib("magic");
+    link_lib("jansson");
+    link_lib("z");
+}
+
 fn main() {
     let ignored_macros = IgnoreMacros(
         vec![
@@ -33,20 +57,43 @@ fn main() {
         .collect(),
     );
 
-    println!("cargo:rustc-link-lib=static=yara");
-    println!("cargo:rustc-link-lib=crypto");
-    println!("cargo:rustc-link-lib=magic");
-    println!("cargo:rustc-link-lib=jansson");
-    println!("cargo:rustc-link-lib=z");
+    #[cfg(target_os = "linux")]
+    link_linux();
+
+    #[cfg(target_os = "windows")]
+    link_windows();
+
+    if let Some(lib_dirs) = std::env::var_os("YARI_LIB_DIRS") {
+        for lib in std::env::split_paths(&lib_dirs) {
+            println!(
+                "cargo:rustc-link-search={}",
+                lib.to_str().expect("Cannot process YARI_LIB_DIRS")
+            );
+        }
+    }
 
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
 
     let yara_repo_root = option_env!("YARI_YARA_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|| crate_root.join("./yara"));
+        .unwrap_or_else(|| crate_root.join("yara"));
 
-    let libyara_dir = yara_repo_root.join("libyara/.libs/");
-    let libyara_includes = yara_repo_root.join("libyara/include/");
+    // Windows link dir
+    println!(
+        "cargo:rustc-link-search={}",
+        crate_root
+            .join("yara")
+            .join("windows")
+            .join("vs2017")
+            .join("libyara")
+            .join("Release")
+            .to_str()
+            .unwrap()
+    );
+
+    // Linux link dir
+    let libyara_dir = yara_repo_root.join("libyara").join(".libs");
+    let libyara_includes = yara_repo_root.join("libyara").join("include");
 
     println!(
         "cargo:rustc-link-search={}",
