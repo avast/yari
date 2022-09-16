@@ -1,4 +1,4 @@
-use clap::{command, Arg, Command};
+use clap::{command, Arg, ArgAction, Command};
 use color_eyre::eyre::{bail, Context, Result};
 use log::LevelFilter;
 use rustyline::error::ReadlineError;
@@ -56,10 +56,8 @@ fn main() -> Result<()> {
                 .short('x')
                 .long("module-data")
                 .value_name("MODULE=FILE")
-                .help("pass FILE's content as extra data to MODULE")
-                .multiple(true)
-                .number_of_values(1)
-                .takes_value(true),
+                .action(ArgAction::Append)
+                .help("pass FILE's content as extra data to MODULE"),
         )
         .arg(
             Arg::new("INPUT")
@@ -99,7 +97,7 @@ fn main() -> Result<()> {
         .with_rule_file(rule_file);
 
     // Add the module data
-    if let Some(modules_data) = matches.values_of("MODULE_DATA") {
+    if let Some(modules_data) = matches.get_many::<String>("MODULE_DATA") {
         for module_data in modules_data {
             let (module, data) = ContextBuilder::parse_module_data_str(module_data).unwrap();
             builder = builder.with_module_data(module, &data);
