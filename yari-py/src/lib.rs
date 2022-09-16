@@ -137,5 +137,7 @@ fn yari(py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add("YariError", py.get_type::<YariError>())?;
 
+    m.add("LICENSES", yari_sys::LICENSES)?;
+
     Ok(())
 }
