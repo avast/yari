@@ -68,6 +68,12 @@ fn main() -> Result<()> {
                 .required(false),
         )
         .arg(
+            Arg::new("LICENSES")
+                .long("licenses")
+                .help("print license information")
+                .required(false),
+        )
+        .arg(
             Arg::new("RULE_FILE")
                 .value_name("RULE")
                 .help("FILE containing rule with strings and variables")
@@ -79,6 +85,11 @@ fn main() -> Result<()> {
                 .arg(Arg::new("MODULE").help("module name").required(true)),
         )
         .get_matches();
+
+    if matches.contains_id("LICENSES") {
+        println!("{}", yari_sys::LICENSES);
+        return Ok(());
+    }
 
     // Prepare the context
     let input_file = matches.get_one::<String>("INPUT");

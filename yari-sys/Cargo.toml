@@ -4,6 +4,7 @@ version = "1.0.0"
 authors = ["Matej Kastak <matej.kastak@avast.com>"]
 edition = "2021"
 license = "MIT"
+include = ["LICENSE-THIRD-PARTY"]
 
 [dependencies]
 log = "0.4.17"

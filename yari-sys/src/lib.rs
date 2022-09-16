@@ -99,6 +99,9 @@ use crate::bindings::OBJECT_TYPE_REFERENCE;
 #[cfg(feature = "avast")]
 use crate::bindings::YR_OBJECT_REFERENCE;
 
+/// Licenses of the third party packages
+pub const LICENSES: &str = include_str!("../LICENSE-THIRD-PARTY");
+
 macro_rules! YR_BITMASK_SIZE {
     ($n:expr) => {
         ($n + u64::BITS * 8 - 1) / (u64::BITS * 8)

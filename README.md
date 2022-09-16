@@ -36,7 +36,7 @@ details.
 
 YARI and its related projects uses third-party libraries or other resources
 listed, along with their licenses, in the
-[`LICENSE-THIRD-PARTY`](https://github.com/avast/yari/blob/master/LICENSE-THIRD-PARTY)
+[`yari-sys/LICENSE-THIRD-PARTY`](https://github.com/avast/yari/blob/master/yari-sys/LICENSE-THIRD-PARTY)
 file.
 
 This product includes software developed by the OpenSSL Project for use in the
