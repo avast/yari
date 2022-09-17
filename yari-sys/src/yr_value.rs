@@ -9,6 +9,7 @@ use crate::bindings::YR_DICT_ITERATOR;
 use crate::bindings::YR_OBJECT;
 use crate::bindings::YR_OBJECT_ARRAY;
 use crate::bindings::YR_OBJECT_STRUCTURE;
+use crate::bindings::YR_UNDEFINED;
 use crate::error::YariError;
 use std::collections::HashMap;
 use std::ffi::CStr;
@@ -18,13 +19,47 @@ use std::ffi::CStr;
 pub enum YrValue {
     Integer(i64),
     Float(f64),
-    String(String),
+    String(Option<String>),
     Dictionary(HashMap<String, YrValue>),
     Array(Vec<YrValue>),
     Structure(HashMap<String, YrValue>),
 }
 
 impl YrValue {
+    /// Check if the `YrValue` is considered undefined.
+    ///
+    /// ```rust
+    /// # use yari_sys::YrValue;
+    /// use std::collections::HashMap;
+    /// use yari_sys::YR_UNDEFINED;
+    ///
+    /// assert!(!YrValue::Integer(1).is_undefined());
+    /// assert!(!YrValue::Integer(0).is_undefined());
+    /// assert!(YrValue::Integer(YR_UNDEFINED).is_undefined());
+    ///
+    /// assert!(!YrValue::Float(1.234).is_undefined());
+    /// assert!(!YrValue::Float(0.0).is_undefined());
+    /// assert!(YrValue::Float(f64::NAN).is_undefined());
+    ///
+    /// assert!(!YrValue::String(Some("not empty".to_string())).is_undefined());
+    /// assert!(!YrValue::String(Some("".to_string())).is_undefined());
+    /// assert!(YrValue::String(None).is_undefined());
+    ///
+    /// assert!(!YrValue::Dictionary(HashMap::new()).is_undefined());
+    /// assert!(!YrValue::Array(Vec::new()).is_undefined());
+    /// assert!(!YrValue::Structure(HashMap::new()).is_undefined());
+    /// ```
+    pub fn is_undefined(&self) -> bool {
+        match self {
+            YrValue::Integer(i) => *i == YR_UNDEFINED,
+            YrValue::Float(f) => f.is_nan(),
+            YrValue::String(s) => s.is_none(),
+            YrValue::Dictionary(_) => false,
+            YrValue::Array(_) => false,
+            YrValue::Structure(_) => false,
+        }
+    }
+
     fn sized_string_to_string(ss: *const SIZED_STRING) -> String {
         let string_slice_i8 = unsafe { (*ss).c_string.as_slice((*ss).length as usize) };
         let string_slice_u8 = unsafe { &*(string_slice_i8 as *const _ as *const [u8]) };
@@ -42,11 +77,10 @@ impl YrValue {
             OBJECT_TYPE_STRING => {
                 let sized_string_ptr = (*object).value.ss;
                 if sized_string_ptr.is_null() {
-                    // TODO: This should be YR_UNDEFINED string, handle it better
-                    YrValue::String("".to_string())
+                    YrValue::String(None)
                 } else {
                     let owned_string = YrValue::sized_string_to_string((*object).value.ss);
-                    YrValue::String(owned_string)
+                    YrValue::String(Some(owned_string))
                 }
             }
             OBJECT_TYPE_FLOAT => YrValue::Float((*object).value.d),
@@ -100,16 +134,20 @@ impl TryFrom<YrValue> for bool {
 
     /// ```rust
     /// # use yari_sys::YrValue;
+    /// use yari_sys::YR_UNDEFINED;
     /// use std::collections::HashMap;
     ///
     /// assert!(bool::try_from(YrValue::Integer(1)).unwrap());
     /// assert!(!bool::try_from(YrValue::Integer(0)).unwrap());
+    /// assert!(!bool::try_from(YrValue::Integer(YR_UNDEFINED)).unwrap());
     ///
     /// assert!(bool::try_from(YrValue::Float(1.1)).unwrap());
     /// assert!(!bool::try_from(YrValue::Float(0.0)).unwrap());
+    /// assert!(!bool::try_from(YrValue::Float(f64::NAN)).unwrap());
     ///
-    /// assert!(bool::try_from(YrValue::String("not empty".to_string())).unwrap());
-    /// assert!(!bool::try_from(YrValue::String("".to_string())).unwrap());
+    /// assert!(bool::try_from(YrValue::String(Some("not empty".to_string()))).unwrap());
+    /// assert!(!bool::try_from(YrValue::String(Some("".to_string()))).unwrap());
+    /// assert!(!bool::try_from(YrValue::String(None)).unwrap());
     ///
     /// assert!(bool::try_from(YrValue::Dictionary(HashMap::new())).is_err());
     /// assert!(bool::try_from(YrValue::Array(Vec::new())).is_err());
@@ -117,9 +155,11 @@ impl TryFrom<YrValue> for bool {
     /// ```
     fn try_from(value: YrValue) -> Result<Self, Self::Error> {
         match value {
-            YrValue::Integer(i) => Ok(i != 0),
-            YrValue::Float(f) => Ok(f != 0f64),
-            YrValue::String(s) => Ok(!s.is_empty()),
+            YrValue::Integer(i) => Ok(!value.is_undefined() && i != 0),
+            YrValue::Float(f) => Ok(!value.is_undefined() && f != 0f64),
+            YrValue::String(ref s) => {
+                Ok(!value.is_undefined() && s.as_ref().map(|s| !s.is_empty()).unwrap_or(false))
+            }
             YrValue::Dictionary(_) => Err(YariError::BoolConversionError),
             YrValue::Array(_) => Err(YariError::BoolConversionError),
             YrValue::Structure(_) => Err(YariError::BoolConversionError),

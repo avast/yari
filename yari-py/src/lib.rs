@@ -32,7 +32,7 @@ fn yr_value_to_py_object(yr_value: &YrValue) -> PyObject {
     match yr_value {
         YrValue::Integer(i) => i.into_py(py),
         YrValue::Float(f) => f.into_py(py),
-        YrValue::String(s) => s.into_py(py),
+        YrValue::String(s) => s.as_ref().into_py(py),
         YrValue::Dictionary(d) => d
             .iter()
             .map(|(k, v)| (k, yr_value_to_py_object(v)))
