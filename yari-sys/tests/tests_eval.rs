@@ -91,9 +91,9 @@ fn test_pe_imphash() {
     let res = context.eval("pe.imphash()");
     assert_eq!(
         res,
-        Ok(YrValue::String(
+        Ok(YrValue::String(Some(
             "61be25042c4f886d1c1894cc5f14523c".to_string()
-        ))
+        )))
     );
 }
 
@@ -101,14 +101,14 @@ fn test_pe_imphash() {
 fn test_pe_imphash_without_sample() {
     let mut context = common::context();
     let res = context.eval("pe.imphash()");
-    assert_eq!(res, Ok(YrValue::String("".to_string())));
+    assert_eq!(res, Ok(YrValue::String(None)));
 }
 
 #[test]
 fn test_yara_ascii_escaped_string() {
     let mut context = common::context_with_pe_signed_sample();
     let res = context.eval("pe.rich_signature.clear_data");
-    assert_eq!(res, Ok(YrValue::String("DanS\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00V\\x1f\\x13\\x00%\\x00\\x00\\x00\\x00\\x00\\x00\\x00/\\x00\\x00\\x00b\\x1f\\x13\\x00\\x12\\x00\\x00\\x00\\x83\\x1c\\x0e\\x00\\x1d\\x00\\x00\\x006&\\n\\x00\\x8c\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x02\\x02\\x00\\x00\\xff \\x04\\x00\\t\\x00\\x00\\x006&\\x0b\\x00y\\x00\\x00\\x00\\xc7\\x06\\x06\\x00\\x01\\x00\\x00\\x00".to_string())));
+    assert_eq!(res, Ok(YrValue::String(Some("DanS\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00V\\x1f\\x13\\x00%\\x00\\x00\\x00\\x00\\x00\\x00\\x00/\\x00\\x00\\x00b\\x1f\\x13\\x00\\x12\\x00\\x00\\x00\\x83\\x1c\\x0e\\x00\\x1d\\x00\\x00\\x006&\\n\\x00\\x8c\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x02\\x02\\x00\\x00\\xff \\x04\\x00\\t\\x00\\x00\\x006&\\x0b\\x00y\\x00\\x00\\x00\\xc7\\x06\\x06\\x00\\x01\\x00\\x00\\x00".to_string()))));
 }
 
 #[test]
@@ -249,7 +249,7 @@ fn test_array() {
 fn test_dictionary_access() {
     let mut context = common::context_with_pe_signed_sample();
     let res = context.eval("pe.version_info[\"OriginalFilename\"]");
-    assert_eq!(res, Ok(YrValue::String("Demo.EXE".to_string())));
+    assert_eq!(res, Ok(YrValue::String(Some("Demo.EXE".to_string()))));
 }
 
 #[test]
@@ -261,27 +261,27 @@ fn test_dictionary() {
         YrValue::Dictionary(res_map) => {
             assert_eq!(
                 *res_map.get("OriginalFilename").unwrap(),
-                YrValue::String("Demo.EXE".to_string())
+                YrValue::String(Some("Demo.EXE".to_string()))
             );
             assert_eq!(
                 *res_map.get("FileVersion").unwrap(),
-                YrValue::String("2, 0, 0, 0".to_string())
+                YrValue::String(Some("2, 0, 0, 0".to_string()))
             );
             assert_eq!(
                 *res_map.get("CompanyName").unwrap(),
-                YrValue::String("".to_string())
+                YrValue::String(Some("".to_string()))
             );
             assert_eq!(
                 *res_map.get("FileDescription").unwrap(),
-                YrValue::String("Demo MFC Application".to_string())
+                YrValue::String(Some("Demo MFC Application".to_string()))
             );
             assert_eq!(
                 *res_map.get("ProductName").unwrap(),
-                YrValue::String("Demo Application".to_string())
+                YrValue::String(Some("Demo Application".to_string()))
             );
             assert_eq!(
                 *res_map.get("LegalCopyright").unwrap(),
-                YrValue::String("Copyright (C) 2004".to_string())
+                YrValue::String(Some("Copyright (C) 2004".to_string()))
             );
 
             assert_eq!(res_map.len(), 12)

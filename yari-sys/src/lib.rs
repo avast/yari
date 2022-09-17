@@ -68,7 +68,7 @@ use crate::bindings::YR_SCANNER;
 use crate::bindings::YR_SCAN_CONTEXT;
 use crate::bindings::YR_STRING;
 use crate::bindings::YR_STRUCTURE_MEMBER;
-use crate::bindings::YR_UNDEFINED;
+pub use crate::bindings::YR_UNDEFINED;
 use crate::bindings::YR_VALUE;
 pub use crate::error::YariError;
 pub use crate::module::Module;
@@ -1345,12 +1345,15 @@ impl Context {
                 }
             }
             OBJECT_TYPE_STRING => {
-                if let YrValue::String(s) = unsafe { YrValue::from(structure_ptr) } {
-                    let value = if !s.is_empty() { s } else { "NULL".to_string() };
-                    println!("{}[STR] {:?} = {}", "\t".repeat(depth), identifier, value);
+                let string = unsafe { YrValue::from(structure_ptr) };
+                let value = if let YrValue::String(Some(s)) = string {
+                    s
+                } else if let YrValue::String(None) = string {
+                    "NULL".to_string()
                 } else {
                     panic!("Could not extract string from object")
-                }
+                };
+                println!("{}[STR] {:?} = {}", "\t".repeat(depth), identifier, value);
             }
             #[cfg(feature = "avast")]
             OBJECT_TYPE_REFERENCE => {
