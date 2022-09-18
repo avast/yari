@@ -25,5 +25,14 @@ jobs:
       run: cd yari-sys/yara && ./bootstrap.sh && CFLAGS="-fPIC" ./configure --enable-debug --disable-shared --enable-static --enable-cuckoo --enable-magic --enable-dotnet --with-crypto && make
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
+    - name: Run Rust tests
       run: cargo test --verbose
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Install yari-py deps
+      run: pip install maturin pytest
+    - name: Build Python package
+      run: maturin develop
+    - name: Run Python tests
+      run: pytest tests
