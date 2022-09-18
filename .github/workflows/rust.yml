@@ -15,7 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout sources
+      uses: actions/checkout@v3
+      with:
+        submodules: 'true'
     - name: Install YARA deps
       run: sudo apt-get install -y automake libtool make gcc pkg-config libssl-dev libjansson-dev libmagic-dev
     - name: Build YARA
