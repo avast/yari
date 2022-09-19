@@ -72,6 +72,7 @@ pub use crate::bindings::YR_UNDEFINED;
 use crate::bindings::YR_VALUE;
 pub use crate::error::YariError;
 pub use crate::module::Module;
+pub use crate::module::MODULES;
 use crate::parser::{parse, Argument, Expression};
 use crate::utils::expression_to_rules_with_condition;
 pub use crate::yr_value::YrValue;

@@ -18,7 +18,8 @@ lazy_static = "1.4.0"
 bindgen = "0.60.1"
 
 [features]
-avast = []
+all_modules = []
+avast = ["all_modules"]
 
 [dev-dependencies]
 env_logger = "0.9.0"
