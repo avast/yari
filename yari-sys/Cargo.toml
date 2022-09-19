@@ -2,6 +2,7 @@
 name = "yari-sys"
 version = "1.0.0"
 authors = ["Matej Kastak <matej.kastak@avast.com>"]
+description = "YARA Interactive debugger."
 edition = "2021"
 license = "MIT"
 include = ["LICENSE-THIRD-PARTY"]
