@@ -156,11 +156,11 @@ fn rule_context(input: &str) -> IResult<&str, &str> {
 }
 
 fn identifier_multi(input: &str) -> IResult<&str, &str> {
-    cut(recognize(tuple((
+    recognize(tuple((
         identifier,
         opt(iterable_access_multi),
-        opt(tuple((char('.'), identifier_multi))),
-    ))))(input)
+        opt(tuple((char('.'), cut(identifier_multi)))),
+    )))(input)
 }
 
 fn string_escape(input: &str) -> IResult<&str, &str> {
@@ -701,7 +701,7 @@ mod tests {
         let res = identifier_multi(".pe.version_info");
         assert_eq!(
             res,
-            Err(Err::Failure(nom::error::Error::new(
+            Err(Err::Error(nom::error::Error::new(
                 ".pe.version_info",
                 ErrorKind::TakeWhile1
             )))
@@ -965,13 +965,25 @@ mod tests {
     }
 
     #[test]
-    fn test_complex_expression() {
+    fn test_complex_expression_eq() {
         let res = expression("rule|pe.num_of_sections == 4");
         assert_eq!(
             res,
             Ok((
                 "",
                 (Some("rule"), Expression::Complex("pe.num_of_sections == 4")),
+            ))
+        );
+    }
+
+    #[test]
+    fn test_complex_expression_and() {
+        let res = expression("rule|$s00 and pe.num_of_sections == 4");
+        assert_eq!(
+            res,
+            Ok((
+                "",
+                (Some("rule"), Expression::Complex("$s00 and pe.num_of_sections == 4")),
             ))
         );
     }
