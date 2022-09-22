@@ -10,6 +10,7 @@ to get the most accurate results.
 - Evaluate complex expressions
 - Check the matches of strings
 - Support for external variables
+- Integration with [YARA Language Server](https://www.github.com/avast/yls)
 
 ## Interactive shell
 
