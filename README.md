@@ -19,12 +19,6 @@ Binary accepts the same arguments as original `yara` binary.
 ```bash
 λ yari /bin/sh
 >> elf.number_of_sections
-Ok(
-    Value(
-        "elf.number_of_sections",
-    ),
-)
-Parsed expression Value("elf.number_of_sections")
 Integer(26)
 >>
 ```
