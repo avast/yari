@@ -1216,10 +1216,7 @@ impl Context {
         self.iterator.context = &mut *self.block as *mut _ as *mut _;
         self.iterator.first = Some(_yr_get_first_block);
         self.iterator.next = Some(_yr_get_next_block);
-
-        // Upstream yara
-        // (*iterator).file_size = Some(_yr_get_file_size);
-        // (*iterator).last_error = ERROR_SUCCESS as i32;
+        self.iterator.file_size = Some(_yr_get_file_size);
     }
 
     unsafe fn compile_string(&mut self, rule_cstr: &CString) -> Result<(), YariError> {
