@@ -56,3 +56,24 @@ rule r {
         ),
     )
 }
+
+pub fn context_with_elf_sample_and_rule() -> Context {
+    context_with_sample(
+        "tests/assets/elf_hello_world",
+        Some(
+            "import \"elf\"
+private rule PRIVATE {
+    condition:
+        elf.number_of_sections == 4
+}
+
+rule r {
+    strings:
+        $s00 = \"Hello\"
+        $s01 = \"this is a pretty unique string that should not be found in the provided sample\"
+    condition:
+        all of them and PRIVATE
+}",
+        ),
+    )
+}

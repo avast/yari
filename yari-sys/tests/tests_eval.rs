@@ -369,3 +369,93 @@ fn test_invalid_data() {
     let val = ContextBuilder::parse_module_data_str("cuckoo=too_many=equals");
     assert_eq!(val, None);
 }
+
+#[test]
+fn test_eval_filesize() {
+    let mut context = common::context_with_pe_sample_and_rule();
+    assert_eq!(
+        context.eval("r|filesize == 8704").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|filesize == 0").unwrap(),
+        YrValue::Integer(0)
+    );
+    assert_eq!(
+        context.eval("r|filesize == 0x2200").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|filesize != 0").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|filesize <= 0x10000").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(context.eval("r|filesize > 0").unwrap(), YrValue::Integer(1));
+}
+
+#[test]
+fn test_eval_entrypoint() {
+    let mut context = common::context_with_pe_sample_and_rule();
+    assert_eq!(
+        context.eval("r|entrypoint == 2166").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|entrypoint == 0").unwrap(),
+        YrValue::Integer(0)
+    );
+    assert_eq!(
+        context.eval("r|entrypoint == 0x876").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|entrypoint != 0").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|entrypoint <= 0x10000").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|entrypoint > 0").unwrap(),
+        YrValue::Integer(1)
+    );
+
+    let mut context = common::context_with_elf_sample_and_rule();
+    assert_eq!(
+        context.eval("r|entrypoint == 4160").unwrap(),
+        YrValue::Integer(1)
+    );
+}
+
+#[test]
+fn test_eval_integer_postfix() {
+    let mut context = common::context_with_pe_sample_and_rule();
+    assert_eq!(
+        context.eval("r|filesize <= 10KB").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|filesize >= 10KB").unwrap(),
+        YrValue::Integer(0)
+    );
+    assert_eq!(
+        context.eval("r|filesize <= 1MB").unwrap(),
+        YrValue::Integer(1)
+    );
+    assert_eq!(
+        context.eval("r|filesize > 1MB").unwrap(),
+        YrValue::Integer(0)
+    );
+    assert_eq!(
+        context.eval("r|filesize == 123MB").unwrap(),
+        YrValue::Integer(0)
+    );
+    assert_eq!(
+        context.eval("r|filesize > 0MB").unwrap(),
+        YrValue::Integer(1)
+    );
+}
