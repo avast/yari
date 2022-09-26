@@ -1418,7 +1418,15 @@ impl Drop for Context {
             unsafe { yr_scanner_destroy(self.fallback_scanner) };
         }
 
-        unsafe { yr_scanner_destroy(&mut **self.context) };
+        #[allow(clippy::if_same_then_else)]
+        if self.use_fallback_eval {
+            #[cfg(not(target_os = "windows"))]
+            unsafe {
+                yr_scanner_destroy(&mut **self.context)
+            };
+        } else {
+            unsafe { yr_scanner_destroy(&mut **self.context) };
+        }
 
         if !rules.is_null() {
             unsafe { yr_rules_destroy(rules) };
