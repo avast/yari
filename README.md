@@ -12,6 +12,8 @@ to get the most accurate results.
 - Support for external variables
 - Integration with [YARA Language Server](https://www.github.com/avast/yls)
 
+![Showcase](https://github.com/avast/yari/raw/master/docs/assets/yari.png)
+
 ## Interactive shell
 
 Binary accepts the same arguments as original `yara` binary.
