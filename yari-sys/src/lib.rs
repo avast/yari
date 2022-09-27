@@ -913,6 +913,8 @@ impl Context {
             | OBJECT_TYPE_FLOAT
             | OBJECT_TYPE_DICTIONARY
             | OBJECT_TYPE_ARRAY => Ok(obj),
+            #[cfg(feature = "avast")]
+            OBJECT_TYPE_REFERENCE => Ok(obj),
             _ => Err(YariError::EvalError),
         }
     }

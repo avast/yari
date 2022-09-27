@@ -48,6 +48,7 @@ fn yr_value_to_py_object(yr_value: &YrValue) -> PyObject {
             .map(|(k, v)| (k, yr_value_to_py_object(v)))
             .collect::<HashMap<_, _>>()
             .into_py(py),
+        YrValue::Reference(r) => r.as_ref().map(|obj| yr_value_to_py_object(obj)).into_py(py),
     }
 }
 

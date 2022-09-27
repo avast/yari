@@ -14,6 +14,12 @@ use crate::error::YariError;
 use std::collections::HashMap;
 use std::ffi::CStr;
 
+#[cfg(feature = "avast")]
+use crate::bindings::OBJECT_TYPE_REFERENCE;
+
+#[cfg(feature = "avast")]
+use crate::bindings::YR_OBJECT_REFERENCE;
+
 /// Result of evalutaion.
 #[derive(Debug, PartialEq)]
 pub enum YrValue {
@@ -23,6 +29,7 @@ pub enum YrValue {
     Dictionary(HashMap<String, YrValue>),
     Array(Vec<YrValue>),
     Structure(HashMap<String, YrValue>),
+    Reference(Option<Box<YrValue>>),
 }
 
 impl YrValue {
@@ -57,6 +64,7 @@ impl YrValue {
             YrValue::Dictionary(_) => false,
             YrValue::Array(_) => false,
             YrValue::Structure(_) => false,
+            YrValue::Reference(r) => r.is_none(),
         }
     }
 
@@ -72,7 +80,7 @@ impl YrValue {
 
     /// # Safety
     /// Caller must ensure that the block is a valid.
-    pub(crate) unsafe fn from(object: *const YR_OBJECT) -> Self {
+    unsafe fn from_inner(object: *const YR_OBJECT, include_references: bool) -> Self {
         match (*object).type_ as u32 {
             OBJECT_TYPE_STRING => {
                 let sized_string_ptr = (*object).value.ss;
@@ -91,7 +99,7 @@ impl YrValue {
 
                 for (key, obj_ptr) in iter {
                     let key_string = YrValue::sized_string_to_string(key);
-                    map.insert(key_string, YrValue::from(obj_ptr));
+                    map.insert(key_string, YrValue::from_inner(obj_ptr, include_references));
                 }
 
                 YrValue::Dictionary(map)
@@ -105,7 +113,7 @@ impl YrValue {
                         continue;
                     }
 
-                    vec.push(YrValue::from(obj));
+                    vec.push(YrValue::from_inner(obj, include_references));
                 }
 
                 YrValue::Array(vec)
@@ -119,13 +127,27 @@ impl YrValue {
                         .to_str()
                         .unwrap()
                         .to_string();
-                    map.insert(key_string, YrValue::from(obj));
+                    map.insert(key_string, YrValue::from_inner(obj, include_references));
                 }
 
                 YrValue::Structure(map)
             }
+            #[cfg(feature = "avast")]
+            OBJECT_TYPE_REFERENCE => {
+                let target_ptr = (*object.cast::<YR_OBJECT_REFERENCE>()).target_obj;
+                if target_ptr.is_null() || !include_references {
+                    YrValue::Reference(None)
+                } else {
+                    // References allow circular dependencies. To avoid that, make unpacking references down the hierarchy illegal.
+                    YrValue::Reference(Some(Box::new(YrValue::from_inner(target_ptr, false))))
+                }
+            }
             _ => unreachable!(),
         }
+    }
+
+    pub(crate) unsafe fn from(object: *const YR_OBJECT) -> Self {
+        YrValue::from_inner(object, true)
     }
 }
 
@@ -163,6 +185,7 @@ impl TryFrom<YrValue> for bool {
             YrValue::Dictionary(_) => Err(YariError::BoolConversionError),
             YrValue::Array(_) => Err(YariError::BoolConversionError),
             YrValue::Structure(_) => Err(YariError::BoolConversionError),
+            YrValue::Reference(_) => Ok(!value.is_undefined()),
         }
     }
 }
