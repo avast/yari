@@ -69,5 +69,6 @@ RUN cd ./yari-sys/yara \
 
 COPY . /yari
 
-RUN cd yari-py \
-    && YARI_USE_BUNDLED_BINDINGS=1 YARI_LIB_DIRS="/usr/x86_64-unknown-linux-gnu/lib/:/usr/lib/x86_64-linux-gnu/" maturin build
+# An example how to build the Python wheel
+# RUN cd yari-py \
+#     && YARI_USE_BUNDLED_BINDINGS=1 YARI_LIB_DIRS="/usr/x86_64-unknown-linux-gnu/lib/:/usr/lib/x86_64-linux-gnu/" maturin build
