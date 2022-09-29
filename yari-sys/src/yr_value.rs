@@ -28,8 +28,7 @@ pub enum YrValue {
     String(Option<String>),
     Dictionary(HashMap<String, YrValue>),
     Array(Vec<YrValue>),
-    Structure(HashMap<String, YrValue>),
-    Reference(Option<Box<YrValue>>),
+    Structure(Option<HashMap<String, YrValue>>),
 }
 
 impl YrValue {
@@ -54,7 +53,9 @@ impl YrValue {
     ///
     /// assert!(!YrValue::Dictionary(HashMap::new()).is_undefined());
     /// assert!(!YrValue::Array(Vec::new()).is_undefined());
-    /// assert!(!YrValue::Structure(HashMap::new()).is_undefined());
+    ///
+    /// assert!(!YrValue::Structure(Some(HashMap::new())).is_undefined());
+    /// assert!(YrValue::Structure(None).is_undefined());
     /// ```
     pub fn is_undefined(&self) -> bool {
         match self {
@@ -63,8 +64,7 @@ impl YrValue {
             YrValue::String(s) => s.is_none(),
             YrValue::Dictionary(_) => false,
             YrValue::Array(_) => false,
-            YrValue::Structure(_) => false,
-            YrValue::Reference(r) => r.is_none(),
+            YrValue::Structure(s) => s.is_none(),
         }
     }
 
@@ -130,16 +130,16 @@ impl YrValue {
                     map.insert(key_string, YrValue::from_inner(obj, include_references));
                 }
 
-                YrValue::Structure(map)
+                YrValue::Structure(Some(map))
             }
             #[cfg(feature = "avast")]
             OBJECT_TYPE_REFERENCE => {
                 let target_ptr = (*object.cast::<YR_OBJECT_REFERENCE>()).target_obj;
                 if target_ptr.is_null() || !include_references {
-                    YrValue::Reference(None)
+                    YrValue::Structure(None)
                 } else {
                     // References allow circular dependencies. To avoid that, make unpacking references down the hierarchy illegal.
-                    YrValue::Reference(Some(Box::new(YrValue::from_inner(target_ptr, false))))
+                    YrValue::from_inner(target_ptr, false)
                 }
             }
             _ => unreachable!(),
@@ -173,7 +173,9 @@ impl TryFrom<YrValue> for bool {
     ///
     /// assert!(bool::try_from(YrValue::Dictionary(HashMap::new())).is_err());
     /// assert!(bool::try_from(YrValue::Array(Vec::new())).is_err());
-    /// assert!(bool::try_from(YrValue::Structure(HashMap::new())).is_err());
+    /// 
+    /// assert!(!bool::try_from(YrValue::Structure(None)).unwrap());
+    /// assert!(bool::try_from(YrValue::Structure(Some(HashMap::new()))).unwrap());
     /// ```
     fn try_from(value: YrValue) -> Result<Self, Self::Error> {
         match value {
@@ -184,8 +186,7 @@ impl TryFrom<YrValue> for bool {
             }
             YrValue::Dictionary(_) => Err(YariError::BoolConversionError),
             YrValue::Array(_) => Err(YariError::BoolConversionError),
-            YrValue::Structure(_) => Err(YariError::BoolConversionError),
-            YrValue::Reference(_) => Ok(!value.is_undefined()),
+            YrValue::Structure(_) => Ok(!value.is_undefined()),
         }
     }
 }

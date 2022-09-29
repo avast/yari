@@ -239,8 +239,10 @@ fn test_array() {
 
     for (idx, structure) in array.iter().enumerate() {
         let yara_section_name = context.eval(&format!("pe.sections[{}].name", idx)).unwrap();
-        if let YrValue::Structure(s1) = structure {
+        if let YrValue::Structure(Some(s1)) = structure {
             assert_eq!(*s1.get("name").unwrap(), yara_section_name);
+        } else {
+            panic!("Expected `Structure(Some())`")
         }
     }
 }
