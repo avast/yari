@@ -1112,8 +1112,6 @@ impl Context {
                     }
                 } else {
                     // Evaluation using fallback scanner
-                    let mut obj = YR_OBJECT::default();
-                    let mut obj_ptr = ptr::null::<YR_OBJECT>();
 
                     // Search for variables
                     #[cfg(feature = "avast")]
@@ -1131,19 +1129,11 @@ impl Context {
                         .cast::<YR_OBJECT>();
                     }
 
-                    if obj_ptr.is_null() {
-                        let rule_matching = self.rules_matching.contains(&name.to_string());
-                        let rule_not_matching = self.rules_not_matching.contains(&name.to_string());
+                    let rule_matching = self.rules_matching.contains(&name.to_string());
+                    let rule_not_matching = self.rules_not_matching.contains(&name.to_string());
 
-                        if rule_matching || rule_not_matching {
-                            obj.type_ = OBJECT_TYPE_INTEGER as i8;
-                            obj.value.i = rule_matching as i64;
-                            obj_ptr = &obj;
-                        }
-                    }
-
-                    if !obj_ptr.is_null() {
-                        Ok(unsafe { YrValue::from(obj_ptr) })
+                    if rule_matching || rule_not_matching {
+                        Ok(YrValue::Integer(rule_matching as i64))
                     } else {
                         Err(YariError::SymbolNotFound(name.to_string()))
                     }
