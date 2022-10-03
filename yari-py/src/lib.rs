@@ -44,9 +44,12 @@ fn yr_value_to_py_object(yr_value: &YrValue) -> PyObject {
             .collect::<Vec<_>>()
             .into_py(py),
         YrValue::Structure(s) => s
-            .iter()
-            .map(|(k, v)| (k, yr_value_to_py_object(v)))
-            .collect::<HashMap<_, _>>()
+            .as_ref()
+            .map(|map| map
+                .iter()
+                .map(|(k, v)| (k, yr_value_to_py_object(v)))
+                .collect::<HashMap<_, _>>()
+            )
             .into_py(py),
     }
 }

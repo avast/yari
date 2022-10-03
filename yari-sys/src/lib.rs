@@ -737,8 +737,8 @@ impl Context {
         unsafe { *module }
     }
 
-    pub fn get_object(&mut self, path: &str) -> Option<&mut *mut YR_OBJECT> {
-        self.objects.get_mut(path)
+    pub fn get_object(&self, path: &str) -> Option<&*mut YR_OBJECT> {
+        self.objects.get(path)
     }
 
     /// Convert an integer to a new allocated YR_VALUE
@@ -913,17 +913,52 @@ impl Context {
             | OBJECT_TYPE_FLOAT
             | OBJECT_TYPE_DICTIONARY
             | OBJECT_TYPE_ARRAY => Ok(obj),
+            #[cfg(feature = "avast")]
+            OBJECT_TYPE_REFERENCE => Ok(obj),
             _ => Err(YariError::EvalError),
         }
     }
 
+    #[cfg(feature = "avast")]
+    fn find_key_for_object(&self, value: *mut YR_OBJECT) -> Option<String> {
+        self.objects.iter()
+            .find_map(|(key, &val)| if val == value { Some(key.clone()) } else { None })
+    }
+
     pub fn get_value(&mut self, name: &str) -> Result<*const YR_OBJECT, YariError> {
         debug!("Getting the value of {:?}", name);
-        let obj_ptr = *self
-            .objects
-            .get_mut(name)
-            .ok_or_else(|| YariError::SymbolNotFound(name.to_string()))?;
+        #[allow(unused_mut)]
+        let mut name = name.to_string();
+        #[allow(unused_mut)]
+        let mut obj_ptr = self.get_object(&name);
 
+        #[cfg(feature = "avast")]
+        while let None = obj_ptr {
+            let mut ref_found  = false;
+            for (i, _) in name.match_indices('.') {
+                let ref_name = name[0..i].to_string().clone();
+                let ref_ptr = self.get_object(&ref_name);
+
+                if let Some(&ref_ptr) = ref_ptr {
+                    if (unsafe { *ref_ptr }).type_ as u32 == OBJECT_TYPE_REFERENCE {
+                        ref_found = true;
+                        let ref_obj = unsafe { *ref_ptr.cast::<YR_OBJECT_REFERENCE>() };
+                        let target_name = self.find_key_for_object(ref_obj.target_obj).ok_or(YariError::EvalError)?;
+                        name = name.replacen(&ref_name, &target_name, 1);
+                        break;
+                    }
+                }
+            }
+
+            if ref_found {
+                obj_ptr = self.get_object(&name);
+            } else {
+                // No reference found, which means that if the object has already not been found, it's not there
+                break;
+            }
+        }
+
+        let obj_ptr = *obj_ptr.ok_or_else(|| YariError::SymbolNotFound(name.to_string()))?;
         unsafe { self.return_obj_if_type_ok(obj_ptr) }
     }
 
