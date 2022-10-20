@@ -36,7 +36,7 @@ fn link_windows() {
 
 #[cfg(target_os = "linux")]
 fn link_linux() {
-    link_lib("yara");
+    println!("cargo:rustc-link-lib=static=yara");
     link_lib("crypto");
     link_lib("magic");
     link_lib("jansson");
