@@ -1,0 +1,120 @@
+name: Yari Release
+
+# FIXME: Restrict this more
+on:
+  # push:
+  #   # Trigger anytime a release tag is created.
+  #   tags:
+  #     - "v*"
+  workflow_dispatch:
+
+jobs:
+  builder-win:
+    # strategy:
+    #   matrix:
+    #     sys:
+    #       - { os: ubuntu-latest, shell: bash }
+    #       - { os: windows-latest, shell: bash }
+    #       - { os: macos-latest, shell: bash }
+
+    #   # Fail if one instance fails.
+    #   fail-fast: true
+
+    name: Build Yari on Windows
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: 'latest'
+
+      - name: Install YARA Dependencies
+        run: nuget.exe restore windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+
+      - name: Build YARA
+        run: msbuild /m /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset="v142" /p:WindowsTargetPlatformVersion="10.0.19041.0" windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+
+      - name: Build yari-sys
+        run: cargo build
+        working-directory: ./yari-sys
+
+      - name: Build Python wheels
+        run: |
+          pip install maturin
+          maturin build -f --release --strip
+
+      # - name: Prepare Files for Publishing
+      #   run: |
+      #     cp LICENSE* install/
+      #     cp SECURITY.md install/
+      #     cp CHANGELOG.md install/
+      #     cp README.md install/
+      # - name: Pack Artifacts Compactly
+      #   if: runner.os != 'Windows'
+      #   run: |
+      #     tar -cvJf RetDec-${{ github.ref_name }}-${{ runner.os }}-Release.tar.xz *
+      #     mv *.tar.xz ..
+      #   working-directory: install
+
+      # - name: Pack Artifacts Compactly on Windows
+      #   if: runner.os == 'Windows'
+      #   run: |
+      #     7z a RetDec-${{ github.ref_name }}-${{ runner.os }}-Release.7z *
+      #     mv *.7z ..
+      #   shell: bash
+      #   working-directory: install
+      - name: List artifacts (remove_me)
+        run: ls -lahR target/wheels
+
+      # - name: Archive Artifacts
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: RetDec-${{ github.ref_name }}-${{ runner.os }}-Release
+      #     path: RetDec-*
+
+  # release:
+  #   name: Release RetDec
+
+  #   runs-on: ubuntu-latest
+  #   needs: builder
+
+  #   steps:
+  #     - uses: actions/checkout@v3
+
+  #     # Fetch artifacts from the build step.
+  #     - name: Fetch Artifacts
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         path: artifacts
+
+  #     # Create a release.
+  #     - name: Release
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       uses: softprops/action-gh-release@v1
+  #       with:
+  #         name: Release ${{ github.ref_name }}
+  #         generate_release_notes: true
+  #         files: |
+  #           LICENSE*
+  #           CHANGELOG.md
+  #           artifacts/*/*.tar.xz
+  #           artifacts/*/*.7z
