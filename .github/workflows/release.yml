@@ -45,6 +45,9 @@ jobs:
         with:
           nuget-version: 'latest'
 
+      - name: Setup msbuild
+        uses: microsoft/setup-msbuild@v1.1
+
       - name: Install YARA Dependencies
         run: nuget.exe restore windows/vs2017/yara.sln
         working-directory: ./yari-sys/yara
