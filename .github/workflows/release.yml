@@ -48,6 +48,11 @@ jobs:
       - name: Setup msbuild
         uses: microsoft/setup-msbuild@v1.1
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+
       - name: Install YARA Dependencies
         run: nuget.exe restore windows/vs2017/yara.sln
         working-directory: ./yari-sys/yara
