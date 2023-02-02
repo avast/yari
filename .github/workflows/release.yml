@@ -1,4 +1,4 @@
-name: Yari Build Python Wheels
+name: Build Python Wheels
 
 on:
   workflow_dispatch:
