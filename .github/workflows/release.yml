@@ -9,17 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  builder-win:
-    # strategy:
-    #   matrix:
-    #     sys:
-    #       - { os: ubuntu-latest, shell: bash }
-    #       - { os: windows-latest, shell: bash }
-    #       - { os: macos-latest, shell: bash }
-
-    #   # Fail if one instance fails.
-    #   fail-fast: true
-
+  builder-windows:
     name: Build Yari on Windows
 
     runs-on: windows-latest
@@ -50,11 +40,6 @@ jobs:
       - name: Setup msbuild
         uses: microsoft/setup-msbuild@v1.1
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-
       - name: Install YARA Dependencies
         run: nuget.exe restore windows/vs2017/yara.sln
         working-directory: ./yari-sys/yara
@@ -62,6 +47,7 @@ jobs:
       - name: Build YARA
         run: msbuild /m /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset="v142" /p:WindowsTargetPlatformVersion="10.0.19041.0" windows/vs2017/yara.sln
         working-directory: ./yari-sys/yara
+        shell: cmd
 
       - name: Build yari-sys
         run: cargo build
@@ -71,27 +57,8 @@ jobs:
         run: |
           pip install maturin
           maturin build -f --release --strip
+        working-directory: ./yari-py
 
-      # - name: Prepare Files for Publishing
-      #   run: |
-      #     cp LICENSE* install/
-      #     cp SECURITY.md install/
-      #     cp CHANGELOG.md install/
-      #     cp README.md install/
-      # - name: Pack Artifacts Compactly
-      #   if: runner.os != 'Windows'
-      #   run: |
-      #     tar -cvJf RetDec-${{ github.ref_name }}-${{ runner.os }}-Release.tar.xz *
-      #     mv *.tar.xz ..
-      #   working-directory: install
-
-      # - name: Pack Artifacts Compactly on Windows
-      #   if: runner.os == 'Windows'
-      #   run: |
-      #     7z a RetDec-${{ github.ref_name }}-${{ runner.os }}-Release.7z *
-      #     mv *.7z ..
-      #   shell: bash
-      #   working-directory: install
       - name: List artifacts (remove_me)
         run: ls -lahR target/wheels
 
