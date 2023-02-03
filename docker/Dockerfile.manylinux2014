@@ -50,10 +50,9 @@ RUN yum install -y \
     pkgconfig \
     python3
 
-# For some reason we need to split this into two commands
-# maturin has to have those two deps installed beforehand
-RUN python3 -m pip install tomli setuptools_rust && \
-    python3 -m pip install maturin
+# Install maturin
+ENV PYTHON_BUILDER=python3.8
+RUN $PYTHON_BUILDER -m pip install maturin==0.14.12
 
 COPY yari-sys/yara /yari/yari-sys/yara
 
