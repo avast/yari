@@ -1,0 +1,61 @@
+name: Build Python Wheels
+
+on:
+  workflow_dispatch:
+
+jobs:
+  builder-windows:
+    name: Build Yari on Windows
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: 'latest'
+
+      - name: Setup msbuild
+        uses: microsoft/setup-msbuild@v1.1
+
+      - name: Install YARA Dependencies
+        run: nuget.exe restore windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+
+      - name: Build YARA
+        run: msbuild /m /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset="v142" /p:WindowsTargetPlatformVersion="10.0.19041.0" windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+        shell: cmd
+
+      - name: Build yari-sys
+        run: cargo build
+        working-directory: ./yari-sys
+
+      - name: Build Python wheels
+        run: |
+          pip install maturin
+          maturin build -f --release --strip
+        working-directory: ./yari-py
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows python wheels
+          path: target/wheels/*.whl
