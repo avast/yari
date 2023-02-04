@@ -4,6 +4,8 @@ ENV PATH /root/.cargo/bin:$PATH
 
 RUN curl --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain 1.63.0 -y
 
+RUN yum install -y perl-IPC-Cmd
+
 RUN mkdir -p /tmp/jansson \
     && cd /tmp/jansson \
     && curl -O https://digip.org/jansson/releases/jansson-2.13.tar.gz \
@@ -15,9 +17,9 @@ RUN mkdir -p /tmp/jansson \
 
 RUN mkdir -p /tmp/openssl \
     && cd /tmp/openssl \
-    && curl -O https://www.openssl.org/source/openssl-1.1.1q.tar.gz \
-    && tar vxf openssl-1.1.1q.tar.gz \
-    && cd  openssl-1.1.1q \
+    && curl -O https://www.openssl.org/source/openssl-3.0.7.tar.gz \
+    && tar vxf openssl-3.0.7.tar.gz\
+    && cd openssl-3.0.7 \
     && CFLAGS="-fPIC" ./config no-shared \
     && make -j$(nproc) \
     && make install_sw
@@ -62,7 +64,7 @@ RUN cp /usr/share/aclocal/pkg.m4 /yari/yari-sys/yara/m4
 
 RUN cd ./yari-sys/yara \
     && ./bootstrap.sh \
-    && LDFLAGS="-static" LIBS="-lz -ldl" CFLAGS="-fPIC" ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --enable-static --disable-shared \
+    && LDFLAGS="-L/usr/local/lib64/ -static" LIBS="-lz -ldl" CFLAGS="-fPIC" ./configure --enable-cuckoo --enable-magic --enable-dotnet --with-crypto --enable-static --disable-shared \
     && make clean \
     && make -j$(nproc)
 
