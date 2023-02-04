@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# 0.1.5 (2023-02-04)
+
+- ci: Update openssl to 3.0.7
+
 # 0.1.4 (2023-02-03)
 
 - build: Link YARA statically for Linux
