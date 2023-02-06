@@ -21,6 +21,7 @@ use crate::bindings::yr_hash_table_create;
 use crate::bindings::yr_hash_table_lookup;
 use crate::bindings::yr_initialize;
 use crate::bindings::yr_modules_load;
+use crate::bindings::yr_modules_unload_all;
 use crate::bindings::yr_notebook_create;
 use crate::bindings::yr_notebook_destroy;
 use crate::bindings::yr_object_array_get_item;
@@ -356,41 +357,31 @@ pub extern "C" fn default_callback(
     message_data: *mut c_void,
     user_data: *mut c_void,
 ) -> i32 {
-    log::debug!(
+    debug!(
         "Callback:\n\t{:?}\n\t{:?}\n\t{:?}\n\t{:?}",
-        context,
-        message,
-        message_data,
-        user_data
+        context, message, message_data, user_data
     );
 
-    match message as u32 {
-        CALLBACK_MSG_IMPORT_MODULE => {
-            let module_data_linked_list_ptr =
-                dbg!(user_data.cast::<Option<ModuleDataLinkedList>>());
-            let mut module_data_linked_list =
-                dbg!(unsafe { module_data_linked_list_ptr.as_ref() }).unwrap();
-            log::debug!("{:?}", module_data_linked_list);
+    if message as u32 == CALLBACK_MSG_IMPORT_MODULE {
+        let module_data_linked_list_ptr = user_data.cast::<Option<ModuleDataLinkedList>>();
+        let mut module_data_linked_list = unsafe { module_data_linked_list_ptr.as_ref() }.unwrap();
 
-            let module_import_ptr: *mut YR_MODULE_IMPORT = message_data.cast();
-            let imported_module_cstr =
-                dbg!(unsafe { CStr::from_ptr((*module_import_ptr).module_name) });
-            let imported_module = imported_module_cstr.to_str().unwrap();
+        let module_import_ptr: *mut YR_MODULE_IMPORT = message_data.cast();
+        let imported_module_cstr = unsafe { CStr::from_ptr((*module_import_ptr).module_name) };
+        let imported_module = imported_module_cstr.to_str().unwrap();
 
-            while let Some(module_data) = module_data_linked_list {
-                log::debug!("module_data {:?}", module_data);
+        while let Some(module_data) = module_data_linked_list {
+            debug!("module_data {:?}", module_data);
 
-                if imported_module == module_data.module {
-                    unsafe {
-                        (*module_import_ptr).module_data = module_data.mapped_file.data as *mut _;
-                        (*module_import_ptr).module_data_size = module_data.mapped_file.size;
-                    }
-                    break;
+            if imported_module == module_data.module {
+                unsafe {
+                    (*module_import_ptr).module_data = module_data.mapped_file.data as *mut _;
+                    (*module_import_ptr).module_data_size = module_data.mapped_file.size;
                 }
-                module_data_linked_list = &module_data.next;
+                break;
             }
+            module_data_linked_list = &module_data.next;
         }
-        _ => {}
     }
     ERROR_SUCCESS as i32
 }
@@ -1453,6 +1444,8 @@ impl Context {
 impl Drop for Context {
     fn drop(&mut self) {
         debug!("Dropping context");
+
+        unsafe { yr_modules_unload_all(&mut **self.context) };
 
         let rules = self.context.rules;
 
