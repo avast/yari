@@ -655,8 +655,6 @@ impl Context {
         self.module_data
             .insert(module, path.as_ref().to_str().unwrap().to_owned());
 
-        debug!("Before: {:?}", self.module_data_linked_list);
-
         let mapped_file = self.filemap(path);
 
         let new_module_data = ModuleDataLinkedList {
@@ -667,6 +665,7 @@ impl Context {
 
         self.module_data_linked_list = Box::new(Some(new_module_data));
 
+        // We need to update callback to point to updated module_data_linked_list
         unsafe {
             yr_scanner_set_callback(
                 &mut **self.context,
@@ -674,8 +673,6 @@ impl Context {
                 &mut *self.module_data_linked_list as *mut _ as *mut c_void,
             )
         };
-
-        debug!("After: {:?}", self.module_data_linked_list);
     }
 
     fn init_objects_cache(&mut self, structure: *mut YR_OBJECT_STRUCTURE) {
