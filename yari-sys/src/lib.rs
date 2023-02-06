@@ -116,6 +116,13 @@ macro_rules! YR_AC_NEXT_STATE {
     };
 }
 
+#[derive(Debug)]
+struct ModuleDataLinkedList {
+    module: String,
+    mapped_file: YR_MAPPED_FILE,
+    next: Box<Option<ModuleDataLinkedList>>,
+}
+
 const RULE_FLAGS_NULL: i32 = 0x04;
 
 impl YR_OBJECT_STRUCTURE {
@@ -404,7 +411,7 @@ pub extern "C" fn default_callback(
     user_data: *mut c_void,
 ) -> i32 {
     log::debug!(
-        "{:?}\n{:?}\n{:?}\n{:?}",
+        "Callback:\n\t{:?}\n\t{:?}\n\t{:?}\n\t{:?}",
         context,
         message,
         message_data,
@@ -413,23 +420,28 @@ pub extern "C" fn default_callback(
 
     match message as u32 {
         CALLBACK_MSG_IMPORT_MODULE => {
-            let context_ptr = user_data.cast::<Context>();
-            let context: &mut Context = unsafe { &mut *context_ptr };
-            log::debug!("{:?}", context.module_data);
+            let module_data_linked_list_ptr =
+                dbg!(user_data.cast::<Option<ModuleDataLinkedList>>());
+            let mut module_data_linked_list =
+                dbg!(unsafe { module_data_linked_list_ptr.as_ref() }).unwrap();
+            log::debug!("{:?}", module_data_linked_list);
 
-            let module_import_ptr = message_data.cast::<YR_MODULE_IMPORT>();
-            let mut module_import = unsafe { *module_import_ptr };
+            let module_import_ptr: *mut YR_MODULE_IMPORT = message_data.cast();
+            let imported_module_cstr =
+                dbg!(unsafe { CStr::from_ptr((*module_import_ptr).module_name) });
+            let imported_module = imported_module_cstr.to_str().unwrap();
 
-            let module_name_cstr = unsafe { CStr::from_ptr(module_import.module_name) };
-            let module_name = module_name_cstr.to_str().unwrap();
-            let module = Module::from_str(module_name).unwrap();
+            while let Some(module_data) = module_data_linked_list {
+                log::debug!("module_data {:?}", module_data);
 
-            let module_data = context.module_data.get(&module).cloned();
-
-            if let Some(file) = module_data {
-                let report = context.filemap(file);
-                module_import.module_data = report.data as *mut c_void;
-                module_import.module_data_size = report.size;
+                if imported_module == module_data.module {
+                    unsafe {
+                        (*module_import_ptr).module_data = module_data.mapped_file.data as *mut _;
+                        (*module_import_ptr).module_data_size = module_data.mapped_file.size;
+                    }
+                    break;
+                }
+                module_data_linked_list = &module_data.next;
             }
         }
         _ => {}
@@ -495,6 +507,7 @@ pub struct Context {
     objects: HashMap<String, *mut YR_OBJECT>,
     /// Mapped files (used for dropping)
     yr_mapped_files: Vec<YR_MAPPED_FILE>,
+    module_data_linked_list: Box<Option<ModuleDataLinkedList>>,
     rules_matching: Vec<String>,
     rules_not_matching: Vec<String>,
 
@@ -609,6 +622,7 @@ impl Context {
             compiler: ptr::null_mut(),
             modules: HashMap::new(),
             module_data: HashMap::new(),
+            module_data_linked_list: Box::new(None),
             objects: HashMap::new(),
             yr_mapped_files: Vec::new(),
             rules_matching: Vec::new(),
@@ -625,7 +639,7 @@ impl Context {
             yr_scanner_set_callback(
                 &mut **res.context,
                 Some(default_callback),
-                &mut res as *mut _ as *mut c_void,
+                &mut *res.module_data_linked_list as *mut _ as *mut c_void,
             )
         };
 
@@ -703,6 +717,28 @@ impl Context {
     fn with_module_data<P: AsRef<Path>>(&mut self, module: Module, path: P) {
         self.module_data
             .insert(module, path.as_ref().to_str().unwrap().to_owned());
+
+        debug!("Before: {:?}", self.module_data_linked_list);
+
+        let mapped_file = self.filemap(path);
+
+        let new_module_data = ModuleDataLinkedList {
+            module: module.to_string(),
+            mapped_file,
+            next: Box::new(self.module_data_linked_list.take()),
+        };
+
+        self.module_data_linked_list = Box::new(Some(new_module_data));
+
+        unsafe {
+            yr_scanner_set_callback(
+                &mut **self.context,
+                Some(default_callback),
+                &mut *self.module_data_linked_list as *mut _ as *mut c_void,
+            )
+        };
+
+        debug!("After: {:?}", self.module_data_linked_list);
     }
 
     fn init_objects_cache(&mut self, structure: *mut YR_OBJECT_STRUCTURE) {
