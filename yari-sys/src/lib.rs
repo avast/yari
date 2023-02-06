@@ -20,13 +20,10 @@ use crate::bindings::yr_get_configuration;
 use crate::bindings::yr_hash_table_create;
 use crate::bindings::yr_hash_table_lookup;
 use crate::bindings::yr_initialize;
-use crate::bindings::yr_modules_do_declarations;
 use crate::bindings::yr_modules_load;
 use crate::bindings::yr_notebook_create;
 use crate::bindings::yr_notebook_destroy;
 use crate::bindings::yr_object_array_get_item;
-use crate::bindings::yr_object_create;
-use crate::bindings::yr_object_destroy;
 use crate::bindings::yr_re_compile;
 use crate::bindings::yr_rules_destroy;
 use crate::bindings::yr_scan_verify_match;
@@ -93,9 +90,6 @@ use std::ptr;
 use std::str::FromStr;
 
 #[cfg(feature = "avast")]
-use crate::bindings::yr_hash_table_lookup;
-
-#[cfg(feature = "avast")]
 use crate::bindings::OBJECT_TYPE_REFERENCE;
 
 #[cfg(feature = "avast")]
@@ -126,54 +120,6 @@ struct ModuleDataLinkedList {
 const RULE_FLAGS_NULL: i32 = 0x04;
 
 impl YR_OBJECT_STRUCTURE {
-    pub fn create(module: &Module, context: &mut Context) -> *mut YR_OBJECT_STRUCTURE {
-        let module_name = CString::new(module.as_ref()).expect("Invalid string");
-        let mut module_structure: *mut YR_OBJECT = ptr::null_mut();
-        unsafe {
-            let mut module_import: *mut YR_MODULE_IMPORT =
-                &mut YR_MODULE_IMPORT::default() as *mut YR_MODULE_IMPORT;
-
-            (*module_import).module_name = module_name.as_ptr();
-
-            if let Some(file) = context.module_data.get(module).map(|s| s.to_owned()) {
-                let report = context.filemap(file);
-                (*module_import).module_data = report.data as *mut c_void;
-                (*module_import).module_data_size = report.size;
-            }
-
-            let parent = ptr::null_mut();
-            let res = yr_object_create(
-                OBJECT_TYPE_STRUCTURE as i8,
-                module_name.as_ptr(),
-                parent,
-                &mut module_structure,
-            );
-
-            if res != ERROR_SUCCESS as i32 {
-                // TODO: Convert this panic to error
-                panic!("Failed to create object for the module")
-            }
-            let res = yr_modules_do_declarations(module_name.as_ptr(), module_structure);
-            if res != ERROR_SUCCESS as i32 {
-                // TODO: Convert this panic to error
-                panic!(
-                    "Failed to do module declarations when loading module {}, maybe it's not enabled?",
-                    module
-                )
-            }
-
-            // TODO: Check the return value
-            // let _ = yr_modules_do_load(
-            //     module_name.as_ptr(),
-            //     module_structure,
-            //     &mut **context.context,
-            //     module_import,
-            // );
-
-            module_structure as *mut YR_OBJECT_STRUCTURE
-        }
-    }
-
     pub fn members(&self) -> YrStructureMemberIterator {
         YrStructureMemberIterator::new(self.members)
     }
@@ -816,21 +762,6 @@ impl Context {
 
         self.modules.insert(module, new_module);
         self.init_objects_cache(new_module);
-    }
-
-    pub fn get_module(&mut self, module: Module) -> YR_OBJECT_STRUCTURE {
-        let module = match self.modules.get(&module) {
-            Some(m) => *m,
-            None => {
-                let new_module = YR_OBJECT_STRUCTURE::create(&module, self);
-
-                self.modules.insert(module, new_module);
-                self.init_objects_cache(new_module);
-                new_module
-            }
-        };
-
-        unsafe { *module }
     }
 
     pub fn get_object(&self, path: &str) -> Option<&*mut YR_OBJECT> {
@@ -1521,18 +1452,9 @@ impl Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
-        // Free the input file
         debug!("Dropping context");
-        let rules = self.context.rules;
 
-        // Drop all YARA modules
-        // for (module, module_structure) in &self.modules {
-        //     unsafe {
-        //         let module_name = CString::new(module.as_ref()).unwrap();
-        //         yr_modules_do_unload(module_name.as_ptr(), module_structure.cast::<YR_OBJECT>());
-        //         yr_object_destroy(module_structure.cast::<YR_OBJECT>());
-        //     }
-        // }
+        let rules = self.context.rules;
 
         if !self.context.matches_notebook.is_null() {
             unsafe {
