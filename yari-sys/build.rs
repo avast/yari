@@ -126,6 +126,7 @@ fn main() {
             .allowlist_var("ERROR_.*")
             .allowlist_var("META_TYPE_.*")
             .allowlist_var("OBJECT_TYPE_.*")
+            .allowlist_var("CALLBACK_MSG_.*")
             .allowlist_function("yr_.*")
             .allowlist_type("YR_.*")
             .blocklist_item("_SIZED_STRING")
