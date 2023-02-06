@@ -440,7 +440,6 @@ pub struct Context {
     context: ManuallyDrop<Box<YR_SCAN_CONTEXT>>,
     compiler: *mut YR_COMPILER,
     modules: HashMap<Module, *mut YR_OBJECT_STRUCTURE>,
-    module_data: HashMap<Module, String>,
     objects: HashMap<String, *mut YR_OBJECT>,
     /// Mapped files (used for dropping)
     yr_mapped_files: Vec<YR_MAPPED_FILE>,
@@ -558,7 +557,6 @@ impl Context {
             context: ManuallyDrop::new(Box::new(YR_SCAN_CONTEXT::default())),
             compiler: ptr::null_mut(),
             modules: HashMap::new(),
-            module_data: HashMap::new(),
             module_data_linked_list: Box::new(None),
             objects: HashMap::new(),
             yr_mapped_files: Vec::new(),
@@ -652,9 +650,6 @@ impl Context {
     }
 
     fn with_module_data<P: AsRef<Path>>(&mut self, module: Module, path: P) {
-        self.module_data
-            .insert(module, path.as_ref().to_str().unwrap().to_owned());
-
         let mapped_file = self.filemap(path);
 
         let new_module_data = ModuleDataLinkedList {
