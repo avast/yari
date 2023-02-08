@@ -18,15 +18,13 @@ use crate::bindings::yr_filemap_unmap;
 use crate::bindings::yr_finalize;
 use crate::bindings::yr_get_configuration;
 use crate::bindings::yr_hash_table_create;
+use crate::bindings::yr_hash_table_lookup;
 use crate::bindings::yr_initialize;
-use crate::bindings::yr_modules_do_declarations;
-use crate::bindings::yr_modules_do_load;
-use crate::bindings::yr_modules_do_unload;
+use crate::bindings::yr_modules_load;
+use crate::bindings::yr_modules_unload_all;
 use crate::bindings::yr_notebook_create;
 use crate::bindings::yr_notebook_destroy;
 use crate::bindings::yr_object_array_get_item;
-use crate::bindings::yr_object_create;
-use crate::bindings::yr_object_destroy;
 use crate::bindings::yr_re_compile;
 use crate::bindings::yr_rules_destroy;
 use crate::bindings::yr_scan_verify_match;
@@ -36,6 +34,7 @@ use crate::bindings::yr_scanner_scan_mem_blocks;
 use crate::bindings::yr_scanner_set_callback;
 use crate::bindings::yr_scanner_set_flags;
 use crate::bindings::yr_scanner_set_timeout;
+use crate::bindings::CALLBACK_MSG_IMPORT_MODULE;
 use crate::bindings::ERROR_SUCCESS;
 use crate::bindings::OBJECT_TYPE_ARRAY;
 use crate::bindings::OBJECT_TYPE_DICTIONARY;
@@ -92,9 +91,6 @@ use std::ptr;
 use std::str::FromStr;
 
 #[cfg(feature = "avast")]
-use crate::bindings::yr_hash_table_lookup;
-
-#[cfg(feature = "avast")]
 use crate::bindings::OBJECT_TYPE_REFERENCE;
 
 #[cfg(feature = "avast")]
@@ -115,57 +111,16 @@ macro_rules! YR_AC_NEXT_STATE {
     };
 }
 
+#[derive(Debug)]
+struct ModuleDataLinkedList {
+    module: String,
+    mapped_file: YR_MAPPED_FILE,
+    next: Box<Option<ModuleDataLinkedList>>,
+}
+
 const RULE_FLAGS_NULL: i32 = 0x04;
 
 impl YR_OBJECT_STRUCTURE {
-    pub fn create(module: &Module, context: &mut Context) -> *mut YR_OBJECT_STRUCTURE {
-        let module_name = CString::new(module.as_ref()).expect("Invalid string");
-        let mut module_structure: *mut YR_OBJECT = ptr::null_mut();
-        unsafe {
-            let mut module_import: *mut YR_MODULE_IMPORT =
-                &mut YR_MODULE_IMPORT::default() as *mut YR_MODULE_IMPORT;
-
-            (*module_import).module_name = module_name.as_ptr();
-
-            if let Some(file) = context.module_data.get(module).map(|s| s.to_owned()) {
-                let report = context.filemap(file);
-                (*module_import).module_data = report.data as *mut c_void;
-                (*module_import).module_data_size = report.size;
-            }
-
-            let parent = ptr::null_mut();
-            let res = yr_object_create(
-                OBJECT_TYPE_STRUCTURE as i8,
-                module_name.as_ptr(),
-                parent,
-                &mut module_structure,
-            );
-
-            if res != ERROR_SUCCESS as i32 {
-                // TODO: Convert this panic to error
-                panic!("Failed to create object for the module")
-            }
-            let res = yr_modules_do_declarations(module_name.as_ptr(), module_structure);
-            if res != ERROR_SUCCESS as i32 {
-                // TODO: Convert this panic to error
-                panic!(
-                    "Failed to do module declarations when loading module {}, maybe it's not enabled?",
-                    module
-                )
-            }
-
-            // TODO: Check the return value
-            let _ = yr_modules_do_load(
-                module_name.as_ptr(),
-                module_structure,
-                &mut **context.context,
-                module_import,
-            );
-
-            module_structure as *mut YR_OBJECT_STRUCTURE
-        }
-    }
-
     pub fn members(&self) -> YrStructureMemberIterator {
         YrStructureMemberIterator::new(self.members)
     }
@@ -396,6 +351,42 @@ extern "C" {
 }
 
 #[no_mangle]
+pub extern "C" fn default_callback(
+    context: *mut YR_SCAN_CONTEXT,
+    message: i32,
+    message_data: *mut c_void,
+    user_data: *mut c_void,
+) -> i32 {
+    debug!(
+        "Callback:\n\t{:?}\n\t{:?}\n\t{:?}\n\t{:?}",
+        context, message, message_data, user_data
+    );
+
+    if message as u32 == CALLBACK_MSG_IMPORT_MODULE {
+        let module_data_linked_list_ptr = user_data.cast::<Option<ModuleDataLinkedList>>();
+        let mut module_data_linked_list = unsafe { module_data_linked_list_ptr.as_ref() }.unwrap();
+
+        let module_import_ptr: *mut YR_MODULE_IMPORT = message_data.cast();
+        let imported_module_cstr = unsafe { CStr::from_ptr((*module_import_ptr).module_name) };
+        let imported_module = imported_module_cstr.to_str().unwrap();
+
+        while let Some(module_data) = module_data_linked_list {
+            debug!("module_data {:?}", module_data);
+
+            if imported_module == module_data.module {
+                unsafe {
+                    (*module_import_ptr).module_data = module_data.mapped_file.data as *mut _;
+                    (*module_import_ptr).module_data_size = module_data.mapped_file.size;
+                }
+                break;
+            }
+            module_data_linked_list = &module_data.next;
+        }
+    }
+    ERROR_SUCCESS as i32
+}
+
+#[no_mangle]
 pub extern "C" fn rule_match_callback(
     _context: *mut YR_SCAN_CONTEXT,
     message: i32,
@@ -449,10 +440,10 @@ pub struct Context {
     context: ManuallyDrop<Box<YR_SCAN_CONTEXT>>,
     compiler: *mut YR_COMPILER,
     modules: HashMap<Module, *mut YR_OBJECT_STRUCTURE>,
-    module_data: HashMap<Module, String>,
     objects: HashMap<String, *mut YR_OBJECT>,
     /// Mapped files (used for dropping)
     yr_mapped_files: Vec<YR_MAPPED_FILE>,
+    module_data_linked_list: Box<Option<ModuleDataLinkedList>>,
     rules_matching: Vec<String>,
     rules_not_matching: Vec<String>,
 
@@ -566,7 +557,7 @@ impl Context {
             context: ManuallyDrop::new(Box::new(YR_SCAN_CONTEXT::default())),
             compiler: ptr::null_mut(),
             modules: HashMap::new(),
-            module_data: HashMap::new(),
+            module_data_linked_list: Box::new(None),
             objects: HashMap::new(),
             yr_mapped_files: Vec::new(),
             rules_matching: Vec::new(),
@@ -577,6 +568,14 @@ impl Context {
             rule_string: rule_string.clone(),
             use_fallback_eval,
             fallback_scanner: ptr::null_mut(),
+        };
+
+        unsafe {
+            yr_scanner_set_callback(
+                &mut **res.context,
+                Some(default_callback),
+                &mut *res.module_data_linked_list as *mut _ as *mut c_void,
+            )
         };
 
         res.input.push(input_file.as_ref());
@@ -651,8 +650,24 @@ impl Context {
     }
 
     fn with_module_data<P: AsRef<Path>>(&mut self, module: Module, path: P) {
-        self.module_data
-            .insert(module, path.as_ref().to_str().unwrap().to_owned());
+        let mapped_file = self.filemap(path);
+
+        let new_module_data = ModuleDataLinkedList {
+            module: module.to_string(),
+            mapped_file,
+            next: Box::new(self.module_data_linked_list.take()),
+        };
+
+        self.module_data_linked_list = Box::new(Some(new_module_data));
+
+        // We need to update callback to point to updated module_data_linked_list
+        unsafe {
+            yr_scanner_set_callback(
+                &mut **self.context,
+                Some(default_callback),
+                &mut *self.module_data_linked_list as *mut _ as *mut c_void,
+            )
+        };
     }
 
     fn init_objects_cache(&mut self, structure: *mut YR_OBJECT_STRUCTURE) {
@@ -716,25 +731,20 @@ impl Context {
 
         debug!("Importing module {:?}", module);
 
-        let new_module = YR_OBJECT_STRUCTURE::create(&module, self);
+        let module_name = CString::new(module.as_ref()).expect("Invalid string");
+        let _res = unsafe { yr_modules_load(module_name.as_ptr(), &mut **self.context) };
+
+        let new_module: *mut YR_OBJECT_STRUCTURE = unsafe {
+            yr_hash_table_lookup(
+                self.context.objects_table,
+                module_name.as_ptr(),
+                ptr::null(),
+            )
+        }
+        .cast();
 
         self.modules.insert(module, new_module);
         self.init_objects_cache(new_module);
-    }
-
-    pub fn get_module(&mut self, module: Module) -> YR_OBJECT_STRUCTURE {
-        let module = match self.modules.get(&module) {
-            Some(m) => *m,
-            None => {
-                let new_module = YR_OBJECT_STRUCTURE::create(&module, self);
-
-                self.modules.insert(module, new_module);
-                self.init_objects_cache(new_module);
-                new_module
-            }
-        };
-
-        unsafe { *module }
     }
 
     pub fn get_object(&self, path: &str) -> Option<&*mut YR_OBJECT> {
@@ -921,8 +931,13 @@ impl Context {
 
     #[cfg(feature = "avast")]
     fn find_key_for_object(&self, value: *mut YR_OBJECT) -> Option<String> {
-        self.objects.iter()
-            .find_map(|(key, &val)| if val == value { Some(key.clone()) } else { None })
+        self.objects.iter().find_map(|(key, &val)| {
+            if val == value {
+                Some(key.clone())
+            } else {
+                None
+            }
+        })
     }
 
     pub fn get_value(&mut self, name: &str) -> Result<*const YR_OBJECT, YariError> {
@@ -934,7 +949,7 @@ impl Context {
 
         #[cfg(feature = "avast")]
         while let None = obj_ptr {
-            let mut ref_found  = false;
+            let mut ref_found = false;
             for (i, _) in name.match_indices('.') {
                 let ref_name = name[0..i].to_string().clone();
                 let ref_ptr = self.get_object(&ref_name);
@@ -943,7 +958,9 @@ impl Context {
                     if (unsafe { *ref_ptr }).type_ as u32 == OBJECT_TYPE_REFERENCE {
                         ref_found = true;
                         let ref_obj = unsafe { *ref_ptr.cast::<YR_OBJECT_REFERENCE>() };
-                        let target_name = self.find_key_for_object(ref_obj.target_obj).ok_or(YariError::EvalError)?;
+                        let target_name = self
+                            .find_key_for_object(ref_obj.target_obj)
+                            .ok_or(YariError::EvalError)?;
                         name = name.replacen(&ref_name, &target_name, 1);
                         break;
                     }
@@ -1292,8 +1309,6 @@ impl Context {
             (*self.context.rules).num_strings as u64,
             size_of::<YR_MATCHES>() as u64,
         ) as *mut YR_MATCHES;
-
-        yr_scanner_set_callback(&mut **self.context, None, ptr::null_mut());
     }
 
     pub fn dump_module(&mut self, module: Module) {
@@ -1420,18 +1435,11 @@ impl Context {
 
 impl Drop for Context {
     fn drop(&mut self) {
-        // Free the input file
         debug!("Dropping context");
-        let rules = self.context.rules;
 
-        // Drop all YARA modules
-        for (module, module_structure) in &self.modules {
-            unsafe {
-                let module_name = CString::new(module.as_ref()).unwrap();
-                yr_modules_do_unload(module_name.as_ptr(), module_structure.cast::<YR_OBJECT>());
-                yr_object_destroy(module_structure.cast::<YR_OBJECT>());
-            }
-        }
+        unsafe { yr_modules_unload_all(&mut **self.context) };
+
+        let rules = self.context.rules;
 
         if !self.context.matches_notebook.is_null() {
             unsafe {
