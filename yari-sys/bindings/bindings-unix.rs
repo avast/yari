@@ -133,12 +133,18 @@ pub const ERROR_DUPLICATED_MODIFIER: u32 = 60;
 pub const ERROR_BLOCK_NOT_READY: u32 = 61;
 pub const ERROR_INVALID_PERCENTAGE: u32 = 62;
 pub const ERROR_IDENTIFIER_MATCHES_WILDCARD: u32 = 63;
-pub const ERROR_INVALID_VALUE: u32 = 64;
 pub const YR_MAJOR_VERSION: u32 = 4;
 pub const YR_MINOR_VERSION: u32 = 2;
-pub const YR_MICRO_VERSION: u32 = 1;
-pub const YR_VERSION_HEX: u32 = 262657;
+pub const YR_MICRO_VERSION: u32 = 3;
+pub const YR_VERSION_HEX: u32 = 262659;
 pub const YR_PARANOID_EXEC: u32 = 1;
+pub const CALLBACK_MSG_RULE_MATCHING: u32 = 1;
+pub const CALLBACK_MSG_RULE_NOT_MATCHING: u32 = 2;
+pub const CALLBACK_MSG_SCAN_FINISHED: u32 = 3;
+pub const CALLBACK_MSG_IMPORT_MODULE: u32 = 4;
+pub const CALLBACK_MSG_MODULE_IMPORTED: u32 = 5;
+pub const CALLBACK_MSG_TOO_MANY_MATCHES: u32 = 6;
+pub const CALLBACK_MSG_CONSOLE_LOG: u32 = 7;
 pub const YR_UNDEFINED: i64 = -1483400188077313;
 pub const OBJECT_TYPE_INTEGER: u32 = 1;
 pub const OBJECT_TYPE_STRING: u32 = 2;
@@ -1254,6 +1260,23 @@ impl Default for pthread_mutex_t {
             s.assume_init()
         }
     }
+}
+extern "C" {
+    pub fn yr_isalnum(s: *const u8) -> ::std::os::raw::c_int;
+}
+extern "C" {
+    pub fn yr_vasprintf(
+        strp: *mut *mut ::std::os::raw::c_char,
+        fmt: *const ::std::os::raw::c_char,
+        ap: *mut __va_list_tag,
+    );
+}
+extern "C" {
+    pub fn yr_asprintf(
+        strp: *mut *mut ::std::os::raw::c_char,
+        fmt: *const ::std::os::raw::c_char,
+        ...
+    );
 }
 pub type YR_STREAM_READ_FUNC = ::std::option::Option<
     unsafe extern "C" fn(
@@ -5032,7 +5055,6 @@ pub struct YR_MATCH {
     pub next: *mut YR_MATCH,
     pub chain_length: i32,
     pub is_private: bool,
-    pub xor_key: u8,
 }
 #[test]
 fn bindgen_test_layout_YR_MATCH() {
@@ -5199,23 +5221,6 @@ fn bindgen_test_layout_YR_MATCH() {
         );
     }
     test_field_is_private();
-    fn test_field_xor_key() {
-        assert_eq!(
-            unsafe {
-                let uninit = ::std::mem::MaybeUninit::<YR_MATCH>::uninit();
-                let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).xor_key) as usize - ptr as usize
-            },
-            53usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(YR_MATCH),
-                "::",
-                stringify!(xor_key)
-            )
-        );
-    }
-    test_field_xor_key();
 }
 impl Default for YR_MATCH {
     fn default() -> Self {
@@ -8513,86 +8518,6 @@ fn bindgen_test_layout_YR_INT_ENUM_ITERATOR() {
     test_field_items();
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct YR_STRING_SET_ITERATOR {
-    pub count: i64,
-    pub index: i64,
-    pub strings: [*mut YR_STRING; 1usize],
-}
-#[test]
-fn bindgen_test_layout_YR_STRING_SET_ITERATOR() {
-    assert_eq!(
-        ::std::mem::size_of::<YR_STRING_SET_ITERATOR>(),
-        24usize,
-        concat!("Size of: ", stringify!(YR_STRING_SET_ITERATOR))
-    );
-    assert_eq!(
-        ::std::mem::align_of::<YR_STRING_SET_ITERATOR>(),
-        8usize,
-        concat!("Alignment of ", stringify!(YR_STRING_SET_ITERATOR))
-    );
-    fn test_field_count() {
-        assert_eq!(
-            unsafe {
-                let uninit = ::std::mem::MaybeUninit::<YR_STRING_SET_ITERATOR>::uninit();
-                let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).count) as usize - ptr as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(YR_STRING_SET_ITERATOR),
-                "::",
-                stringify!(count)
-            )
-        );
-    }
-    test_field_count();
-    fn test_field_index() {
-        assert_eq!(
-            unsafe {
-                let uninit = ::std::mem::MaybeUninit::<YR_STRING_SET_ITERATOR>::uninit();
-                let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).index) as usize - ptr as usize
-            },
-            8usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(YR_STRING_SET_ITERATOR),
-                "::",
-                stringify!(index)
-            )
-        );
-    }
-    test_field_index();
-    fn test_field_strings() {
-        assert_eq!(
-            unsafe {
-                let uninit = ::std::mem::MaybeUninit::<YR_STRING_SET_ITERATOR>::uninit();
-                let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).strings) as usize - ptr as usize
-            },
-            16usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(YR_STRING_SET_ITERATOR),
-                "::",
-                stringify!(strings)
-            )
-        );
-    }
-    test_field_strings();
-}
-impl Default for YR_STRING_SET_ITERATOR {
-    fn default() -> Self {
-        let mut s = ::std::mem::MaybeUninit::<Self>::uninit();
-        unsafe {
-            ::std::ptr::write_bytes(s.as_mut_ptr(), 0, 1);
-            s.assume_init()
-        }
-    }
-}
-#[repr(C)]
 #[derive(Copy, Clone)]
 pub struct YR_ITERATOR {
     pub next_func_idx: ::std::os::raw::c_int,
@@ -8605,7 +8530,6 @@ pub union YR_ITERATOR__bindgen_ty_1 {
     pub dict_it: YR_DICT_ITERATOR,
     pub int_range_it: YR_INT_RANGE_ITERATOR,
     pub int_enum_it: YR_INT_ENUM_ITERATOR,
-    pub string_set_it: YR_STRING_SET_ITERATOR,
 }
 #[test]
 fn bindgen_test_layout_YR_ITERATOR__bindgen_ty_1() {
@@ -8687,23 +8611,6 @@ fn bindgen_test_layout_YR_ITERATOR__bindgen_ty_1() {
         );
     }
     test_field_int_enum_it();
-    fn test_field_string_set_it() {
-        assert_eq!(
-            unsafe {
-                let uninit = ::std::mem::MaybeUninit::<YR_ITERATOR__bindgen_ty_1>::uninit();
-                let ptr = uninit.as_ptr();
-                ::std::ptr::addr_of!((*ptr).string_set_it) as usize - ptr as usize
-            },
-            0usize,
-            concat!(
-                "Offset of field: ",
-                stringify!(YR_ITERATOR__bindgen_ty_1),
-                "::",
-                stringify!(string_set_it)
-            )
-        );
-    }
-    test_field_string_set_it();
 }
 impl Default for YR_ITERATOR__bindgen_ty_1 {
     fn default() -> Self {
@@ -11527,38 +11434,7 @@ extern "C" {
     ) -> ::std::os::raw::c_int;
 }
 extern "C" {
-    pub fn yr_modules_do_load(
-        module_name: *const ::std::os::raw::c_char,
-        module_structure: *mut YR_OBJECT,
-        context: *mut YR_SCAN_CONTEXT,
-        module_import: *mut YR_MODULE_IMPORT,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
     pub fn yr_modules_unload_all(context: *mut YR_SCAN_CONTEXT) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn yr_modules_do_unload(
-        module_name: *const ::std::os::raw::c_char,
-        module_structure: *mut YR_OBJECT,
-    ) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn yr_isalnum(s: *const u8) -> ::std::os::raw::c_int;
-}
-extern "C" {
-    pub fn yr_vasprintf(
-        strp: *mut *mut ::std::os::raw::c_char,
-        fmt: *const ::std::os::raw::c_char,
-        ap: *mut __va_list_tag,
-    );
-}
-extern "C" {
-    pub fn yr_asprintf(
-        strp: *mut *mut ::std::os::raw::c_char,
-        fmt: *const ::std::os::raw::c_char,
-        ...
-    );
 }
 pub type __builtin_va_list = [__va_list_tag; 1usize];
 #[repr(C)]
