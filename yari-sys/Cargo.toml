@@ -1,6 +1,6 @@
 [package]
 name = "yari-sys"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Matej Kastak <matej.kastak@avast.com>"]
 description = "YARA Interactive debugger."
 edition = "2021"

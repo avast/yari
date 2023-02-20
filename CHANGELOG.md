@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# 0.1.6 (2023-02-20)
+
+- feat: Start using vanilla YARA API (#19)
+- ci: Add tests for bundled bindings
+
 # 0.1.5 (2023-02-04)
 
 - ci: Update openssl to 3.0.7

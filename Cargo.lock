@@ -962,7 +962,7 @@ checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
 
 [[package]]
 name = "yari-cli"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "clap",
  "color-eyre",
@@ -974,7 +974,7 @@ dependencies = [
 
 [[package]]
 name = "yari-py"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "pyo3",
  "yari-sys",
@@ -982,7 +982,7 @@ dependencies = [
 
 [[package]]
 name = "yari-sys"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "bindgen",
  "env_logger",
