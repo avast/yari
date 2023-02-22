@@ -9,7 +9,7 @@ license = "MIT"
 [dependencies]
 clap = { version = "3.2.17", features = ["cargo"] }
 color-eyre = "0.6.2"
-env_logger = "0.9.0"
+env_logger = "0.10.0"
 log = "0.4.17"
 rustyline = "10.0.0"
 yari-sys = { path = "../yari-sys" }
