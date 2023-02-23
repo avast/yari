@@ -10,7 +10,7 @@ include = ["LICENSE-THIRD-PARTY"]
 [dependencies]
 log = "0.4.17"
 nom = "7.1.1"
-regex = "1.6.0"
+regex = "1.7.1"
 thiserror = "1.0.32"
 lazy_static = "1.4.0"
 
