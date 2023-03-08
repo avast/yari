@@ -827,10 +827,22 @@ impl Context {
         let c_value = CString::new(value).expect("Cannot convert value to CString");
         let mut arena_ref: YR_ARENA_REF = YR_ARENA_REF::default();
         let mut error: RE_ERROR = RE_ERROR::default();
+
         unsafe {
+            #[cfg(not(feature = "avast"))]
             yr_re_compile(
                 c_value.as_ptr(),
                 flags,
+                (*self.compiler).arena,
+                &mut arena_ref as *mut YR_ARENA_REF,
+                &mut error as *mut RE_ERROR,
+            );
+
+            #[cfg(feature = "avast")]
+            yr_re_compile(
+                c_value.as_ptr(),
+                flags,
+                0 as i32,
                 (*self.compiler).arena,
                 &mut arena_ref as *mut YR_ARENA_REF,
                 &mut error as *mut RE_ERROR,
