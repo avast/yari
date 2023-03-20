@@ -25,31 +25,28 @@ struct Context {
 /// Return values are modeled similar to Python built-in `eval` function. This function converts
 /// values to the Python native types. For example `Vec<YrValue>` is converted to `list[YrValue]`.
 /// Same applies to structures and dictionaries.
-fn yr_value_to_py_object(yr_value: &YrValue) -> PyObject {
-    let gil = Python::acquire_gil();
-    let py = gil.python();
-
+fn yr_value_to_py_object(py: Python<'_>, yr_value: &YrValue) -> PyObject {
     match yr_value {
         YrValue::Integer(i) => i.into_py(py),
         YrValue::Float(f) => f.into_py(py),
         YrValue::String(s) => s.as_ref().into_py(py),
         YrValue::Dictionary(d) => d
             .iter()
-            .map(|(k, v)| (k, yr_value_to_py_object(v)))
+            .map(|(k, v)| (k, yr_value_to_py_object(py, v)))
             .collect::<HashMap<_, _>>()
             .into_py(py),
         YrValue::Array(a) => a
             .iter()
-            .map(yr_value_to_py_object)
+            .map(|val| yr_value_to_py_object(py, val))
             .collect::<Vec<_>>()
             .into_py(py),
         YrValue::Structure(s) => s
             .as_ref()
-            .map(|map| map
-                .iter()
-                .map(|(k, v)| (k, yr_value_to_py_object(v)))
-                .collect::<HashMap<_, _>>()
-            )
+            .map(|map| {
+                map.iter()
+                    .map(|(k, v)| (k, yr_value_to_py_object(py, v)))
+                    .collect::<HashMap<_, _>>()
+            })
             .into_py(py),
     }
 }
@@ -117,11 +114,11 @@ impl Context {
     ///
     /// This function behaves like python build-in `eval` function and returns dynamic type based
     /// on the evaluation result.
-    pub fn eval(&mut self, expr: &str) -> PyResult<PyObject> {
+    pub fn eval(&mut self, py: Python<'_>, expr: &str) -> PyResult<PyObject> {
         self.inner
             .eval(expr)
             .as_ref()
-            .map(yr_value_to_py_object)
+            .map(|val| yr_value_to_py_object(py, val))
             .map_err(|e| YariError::new_err(e.to_string()))
     }
 

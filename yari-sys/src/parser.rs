@@ -983,7 +983,10 @@ mod tests {
             res,
             Ok((
                 "",
-                (Some("rule"), Expression::Complex("$s00 and pe.num_of_sections == 4")),
+                (
+                    Some("rule"),
+                    Expression::Complex("$s00 and pe.num_of_sections == 4")
+                ),
             ))
         );
     }
