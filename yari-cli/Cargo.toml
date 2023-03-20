@@ -7,7 +7,7 @@ edition = "2021"
 license = "MIT"
 
 [dependencies]
-clap = { version = "4.1.7", features = ["cargo"] }
+clap = { version = "4.1.11", features = ["cargo"] }
 color-eyre = "0.6.2"
 env_logger = "0.10.0"
 log = "0.4.17"
