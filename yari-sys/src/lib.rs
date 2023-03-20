@@ -554,7 +554,7 @@ impl Context {
         unsafe { yr_initialize() };
 
         let mut res = Context {
-            context: ManuallyDrop::new(Box::new(YR_SCAN_CONTEXT::default())),
+            context: ManuallyDrop::new(Box::default()),
             compiler: ptr::null_mut(),
             modules: HashMap::new(),
             module_data_linked_list: Box::new(None),
@@ -562,8 +562,8 @@ impl Context {
             yr_mapped_files: Vec::new(),
             rules_matching: Vec::new(),
             rules_not_matching: Vec::new(),
-            iterator: Box::new(YR_MEMORY_BLOCK_ITERATOR::default()),
-            block: Box::new(YR_MEMORY_BLOCK::default()),
+            iterator: Box::default(),
+            block: Box::default(),
             input: PathBuf::new(),
             rule_string: rule_string.clone(),
             use_fallback_eval,
@@ -754,7 +754,7 @@ impl Context {
     /// Convert an integer to a new allocated YR_VALUE
     fn i_from_int(&self, i: &i64) -> YR_VALUE {
         // Allocate a new YR_VALUE
-        let ptr = Box::leak(Box::new(YR_VALUE::default()));
+        let ptr: &mut YR_VALUE = Box::leak(Box::default());
 
         // Set the value
         ptr.i = *i;

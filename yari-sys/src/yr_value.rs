@@ -80,7 +80,7 @@ impl YrValue {
 
     /// # Safety
     /// Caller must ensure that the block is a valid.
-    unsafe fn from_inner(object: *const YR_OBJECT, include_references: bool) -> Self {
+    unsafe fn from_inner(object: *const YR_OBJECT, _include_references: bool) -> Self {
         match (*object).type_ as u32 {
             OBJECT_TYPE_STRING => {
                 let sized_string_ptr = (*object).value.ss;
@@ -99,7 +99,10 @@ impl YrValue {
 
                 for (key, obj_ptr) in iter {
                     let key_string = YrValue::sized_string_to_string(key);
-                    map.insert(key_string, YrValue::from_inner(obj_ptr, include_references));
+                    map.insert(
+                        key_string,
+                        YrValue::from_inner(obj_ptr, _include_references),
+                    );
                 }
 
                 YrValue::Dictionary(map)
@@ -113,7 +116,7 @@ impl YrValue {
                         continue;
                     }
 
-                    vec.push(YrValue::from_inner(obj, include_references));
+                    vec.push(YrValue::from_inner(obj, _include_references));
                 }
 
                 YrValue::Array(vec)
@@ -127,7 +130,7 @@ impl YrValue {
                         .to_str()
                         .unwrap()
                         .to_string();
-                    map.insert(key_string, YrValue::from_inner(obj, include_references));
+                    map.insert(key_string, YrValue::from_inner(obj, _include_references));
                 }
 
                 YrValue::Structure(Some(map))
@@ -135,7 +138,7 @@ impl YrValue {
             #[cfg(feature = "avast")]
             OBJECT_TYPE_REFERENCE => {
                 let target_ptr = (*object.cast::<YR_OBJECT_REFERENCE>()).target_obj;
-                if target_ptr.is_null() || !include_references {
+                if target_ptr.is_null() || !_include_references {
                     YrValue::Structure(None)
                 } else {
                     // References allow circular dependencies. To avoid that, make unpacking references down the hierarchy illegal.
