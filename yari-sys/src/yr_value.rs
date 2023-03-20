@@ -173,7 +173,7 @@ impl TryFrom<YrValue> for bool {
     ///
     /// assert!(bool::try_from(YrValue::Dictionary(HashMap::new())).is_err());
     /// assert!(bool::try_from(YrValue::Array(Vec::new())).is_err());
-    /// 
+    ///
     /// assert!(!bool::try_from(YrValue::Structure(None)).unwrap());
     /// assert!(bool::try_from(YrValue::Structure(Some(HashMap::new()))).unwrap());
     /// ```

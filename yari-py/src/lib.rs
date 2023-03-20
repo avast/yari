@@ -45,11 +45,11 @@ fn yr_value_to_py_object(yr_value: &YrValue) -> PyObject {
             .into_py(py),
         YrValue::Structure(s) => s
             .as_ref()
-            .map(|map| map
-                .iter()
-                .map(|(k, v)| (k, yr_value_to_py_object(v)))
-                .collect::<HashMap<_, _>>()
-            )
+            .map(|map| {
+                map.iter()
+                    .map(|(k, v)| (k, yr_value_to_py_object(v)))
+                    .collect::<HashMap<_, _>>()
+            })
             .into_py(py),
     }
 }
