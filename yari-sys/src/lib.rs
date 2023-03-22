@@ -842,7 +842,7 @@ impl Context {
             yr_re_compile(
                 c_value.as_ptr(),
                 flags,
-                0 as i32,
+                0_i32,
                 (*self.compiler).arena,
                 &mut arena_ref as *mut YR_ARENA_REF,
                 &mut error as *mut RE_ERROR,
@@ -960,7 +960,7 @@ impl Context {
         let mut obj_ptr = self.get_object(&name);
 
         #[cfg(feature = "avast")]
-        while let None = obj_ptr {
+        while obj_ptr.is_none() {
             let mut ref_found = false;
             for (i, _) in name.match_indices('.') {
                 let ref_name = name[0..i].to_string().clone();
