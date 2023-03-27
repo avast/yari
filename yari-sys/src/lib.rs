@@ -107,7 +107,7 @@ macro_rules! YR_BITMASK_SIZE {
 
 macro_rules! YR_AC_NEXT_STATE {
     ($t:expr) => {
-        $t as isize >> 9
+        $t >> 9
     };
 }
 
@@ -271,7 +271,7 @@ pub unsafe extern "C" fn _yr_get_next_block(
 /// # Safety
 /// Caller must ensure that the iterator is a valid.
 pub unsafe extern "C" fn _yr_get_file_size(iterator: *mut YR_MEMORY_BLOCK_ITERATOR) -> u64 {
-    (*((*iterator).context as *mut YR_MEMORY_BLOCK)).size
+    (*((*iterator).context as *mut YR_MEMORY_BLOCK)).size as u64
 }
 
 /// # Safety
@@ -286,37 +286,43 @@ pub unsafe extern "C" fn _yr_scanner_scan_mem_block(
     let transition_table = (*rules).ac_transition_table;
     let match_table = (*rules).ac_match_table;
     let mut i = 0;
-    let mut state = 0; // YR_AC_ROOT_STATE
+    let mut state: u32 = 0; // YR_AC_ROOT_STATE
 
     while i < block.size {
-        if *match_table.offset(state) != 0 {
-            let mut m = (*rules)
-                .ac_match_pool
-                .offset(*match_table.offset(state) as isize - 1);
+        if *match_table.add(state.try_into().unwrap()) != 0 {
+            let mut m = (*rules).ac_match_pool.add(
+                (*match_table.add(state.try_into().unwrap()) - 1)
+                    .try_into()
+                    .unwrap(),
+            );
 
             while !m.is_null() {
-                if (*m).backtrack as u64 <= i {
-                    yr_scan_verify_match(
+                if (*m).backtrack as usize <= i {
+                    let res = yr_scan_verify_match(
                         scanner,
                         m,
                         block_data,
                         block.size,
                         block.base,
-                        i - (*m).backtrack as u64,
+                        i - (*m).backtrack as usize,
                     );
+                    if res != ERROR_SUCCESS as i32 {
+                        error!("Call to yr_scan_verify_match failed with {}", res);
+                        return;
+                    }
                 }
                 m = (*m).__bindgen_anon_4.next;
             }
         }
 
-        let index = *block_data.offset(i as isize) as isize + 1;
+        let index = *block_data.add(i) as usize + 1;
         i += 1;
-        let mut transition = *transition_table.offset(state + index);
+        let mut transition = *transition_table.add(usize::try_from(state).unwrap() + index);
 
         while (transition & 0x1FF) != index as u32 {
             if state != 0 {
-                state = YR_AC_NEXT_STATE!(*transition_table.offset(state));
-                transition = *transition_table.offset(state + index);
+                state = YR_AC_NEXT_STATE!(*transition_table.add(state.try_into().unwrap()));
+                transition = *transition_table.add(usize::try_from(state).unwrap() + index);
             } else {
                 transition = 0;
                 break;
@@ -325,20 +331,20 @@ pub unsafe extern "C" fn _yr_scanner_scan_mem_block(
         state = YR_AC_NEXT_STATE!(transition);
     }
 
-    if *match_table.offset(state) != 0 {
+    if *match_table.add(state.try_into().unwrap()) != 0 {
         let mut m = (*rules)
             .ac_match_pool
-            .offset(*match_table.offset(state) as isize - 1);
+            .offset(*match_table.add(state.try_into().unwrap()) as isize - 1);
 
         while !m.is_null() {
-            if (*m).backtrack as u64 <= i {
+            if (*m).backtrack as usize <= i {
                 yr_scan_verify_match(
                     scanner,
                     m,
                     block_data,
                     block.size,
                     block.base,
-                    i - (*m).backtrack as u64,
+                    i - (*m).backtrack as usize,
                 );
             }
             m = (*m).__bindgen_anon_4.next;
@@ -630,12 +636,12 @@ impl Context {
                             (&mut max_match_data as *mut usize).cast::<c_void>(),
                         );
                         yr_notebook_create(
-                            (1024 * (size_of::<YR_MATCH>() + max_match_data)) as u64,
+                            1024 * (size_of::<YR_MATCH>() + max_match_data),
                             &mut res.context.matches_notebook,
                         );
 
                         res.context.entry_point =
-                            yr_get_entry_point_offset(data, (*block).size as usize);
+                            yr_get_entry_point_offset(data, (*block).size);
                         _yr_scanner_scan_mem_block(&mut **res.context, data, block);
                     }
                 }
@@ -1271,7 +1277,7 @@ impl Context {
         }
     }
 
-    fn iterator_init(&mut self, buffer: *const u8, buffer_size: u64) {
+    fn iterator_init(&mut self, buffer: *const u8, buffer_size: usize) {
         self.block.size = buffer_size;
         self.block.base = 0;
         self.block.fetch_data = Some(_yr_fetch_block_data);
@@ -1298,28 +1304,28 @@ impl Context {
 
     unsafe fn setup_scanner(&mut self) {
         self.context.rule_matches_flags = yr_calloc(
-            size_of::<u64>() as u64,
-            YR_BITMASK_SIZE!((*self.context.rules).num_rules) as u64,
+            size_of::<u64>(),
+            YR_BITMASK_SIZE!((*self.context.rules).num_rules) as usize,
         ) as *mut std::os::raw::c_ulong;
 
         self.context.ns_unsatisfied_flags = yr_calloc(
-            size_of::<u64>() as u64,
-            YR_BITMASK_SIZE!((*self.context.rules).num_namespaces) as u64,
+            size_of::<u64>(),
+            YR_BITMASK_SIZE!((*self.context.rules).num_namespaces) as usize,
         ) as *mut std::os::raw::c_ulong;
 
         self.context.strings_temp_disabled = yr_calloc(
-            size_of::<u64>() as u64,
-            YR_BITMASK_SIZE!((*self.context.rules).num_strings) as u64,
+            size_of::<u64>(),
+            YR_BITMASK_SIZE!((*self.context.rules).num_strings) as usize,
         ) as *mut std::os::raw::c_ulong;
 
         self.context.matches = yr_calloc(
-            (*self.context.rules).num_strings as u64,
-            size_of::<YR_MATCHES>() as u64,
+            (*self.context.rules).num_strings as usize,
+            size_of::<YR_MATCHES>(),
         ) as *mut YR_MATCHES;
 
         self.context.unconfirmed_matches = yr_calloc(
-            (*self.context.rules).num_strings as u64,
-            size_of::<YR_MATCHES>() as u64,
+            (*self.context.rules).num_strings as usize,
+            size_of::<YR_MATCHES>(),
         ) as *mut YR_MATCHES;
     }
 
