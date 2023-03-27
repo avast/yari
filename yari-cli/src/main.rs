@@ -2,19 +2,18 @@ use clap::{command, Arg, ArgAction, Command};
 use color_eyre::eyre::{bail, Context, Result};
 use log::LevelFilter;
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
 use std::str::FromStr;
 use yari_sys::{ContextBuilder, Module};
 
 /// Spawn interactive shell
 fn interactive(context: &mut yari_sys::Context) -> Result<()> {
-    let mut rl = Editor::<()>::new().context("cannot create an editor")?;
+    let mut rl = rustyline::DefaultEditor::new().context("cannot create an editor")?;
 
     loop {
         let readline = rl.readline(">> ");
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
+                rl.add_history_entry(line.as_str())?;
 
                 match context.eval(&line) {
                     Ok(res_obj) => {
