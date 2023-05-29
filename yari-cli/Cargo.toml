@@ -10,7 +10,7 @@ license = "MIT"
 clap = { version = "4.1.14", features = ["cargo"] }
 color-eyre = "0.6.2"
 env_logger = "0.10.0"
-log = "0.4.17"
+log = "0.4.18"
 rustyline = "11.0.0"
 yari-sys = { path = "../yari-sys" }
 
