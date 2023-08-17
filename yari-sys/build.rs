@@ -63,6 +63,12 @@ fn main() {
     #[cfg(target_os = "windows")]
     link_windows();
 
+    if let Some(libs) = std::env::var_os("YARI_LIBS") {
+        for lib in std::env::split_paths(&libs) {
+            link_lib(lib.to_str().expect("Cannot process YARI_LIBS"));
+        }
+    }
+
     if let Some(lib_dirs) = std::env::var_os("YARI_LIB_DIRS") {
         for lib in std::env::split_paths(&lib_dirs) {
             println!(
