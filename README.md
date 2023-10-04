@@ -14,6 +14,15 @@ to get the most accurate results.
 
 ![Showcase](https://github.com/avast/yari/raw/master/docs/assets/yari.png)
 
+For more information, check out:
+- [Blog post](https://engineering.avast.io/yari-a-new-era-of-yara-debugging/)
+- [Wiki](https://www.github.com/avast/yari/wiki)
+
+## Installation
+
+To setup your environment please follow instructions from the YLS 
+[wiki](https://github.com/avast/yls/wiki/How-to-setup).
+
 ## Interactive shell
 
 Binary accepts the same arguments as original `yara` binary.
