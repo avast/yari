@@ -34,8 +34,8 @@ fn link_windows() {
     link_lib("libyara64");
 }
 
-#[cfg(target_os = "linux")]
-fn link_linux() {
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn link_unix() {
     println!("cargo:rustc-link-lib=static=yara");
     link_lib("crypto");
     link_lib("magic");
@@ -57,8 +57,8 @@ fn main() {
         .collect(),
     );
 
-    #[cfg(target_os = "linux")]
-    link_linux();
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    link_unix();
 
     #[cfg(target_os = "windows")]
     link_windows();
@@ -119,7 +119,14 @@ fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_path = PathBuf::from(out_dir).join("bindings.rs");
     if use_bundled_bindings.is_some() {
-        let binding_file = "bindings-unix.rs";
+        // Different bindings for linux and macos
+        let binding_file = if cfg!(target_os = "linux") {
+            "bindings-linux.rs"
+        } else if cfg!(target_os = "macos") {
+            "bindings-macos.rs"
+        } else {
+            panic!("Unsupported OS for bundled bindings.")
+        };
         fs::copy(PathBuf::from("bindings").join(binding_file), out_path)
             .expect("Could not copy bindings to output directory");
     } else if let Some(bindings_file) = option_env!("YARI_BINDINGS_FILE") {
