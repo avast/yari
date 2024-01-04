@@ -41,7 +41,7 @@ jobs:
         pip install maturin pytest
         maturin develop
         pytest tests
-build-macos:
+  build-macos:
     runs-on: macos-latest
     steps:
     - name: Checkout sources

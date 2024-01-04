@@ -120,11 +120,13 @@ fn main() {
     let out_path = PathBuf::from(out_dir).join("bindings.rs");
     if use_bundled_bindings.is_some() {
         // Different bindings for linux and macos
-        #[cfg(target_os = "linux")]
-        let binding_file = "bindings-linux.rs";
-        #[cfg(target_os = "macos")]
-        let binding_file = "bindings-macos.rs";
-
+        let binding_file = if cfg!(target_os = "linux") {
+            "bindings-linux.rs"
+        } else if cfg!(target_os = "macos") {
+            "bindings-macos.rs"
+        } else {
+            panic!("Unsupported OS for bundled bindings.")
+        };
         fs::copy(PathBuf::from("bindings").join(binding_file), out_path)
             .expect("Could not copy bindings to output directory");
     } else if let Some(bindings_file) = option_env!("YARI_BINDINGS_FILE") {
