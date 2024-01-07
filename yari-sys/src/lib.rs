@@ -796,12 +796,12 @@ impl Context {
 
         // Copy the string
         for (i, c) in s.bytes().enumerate() {
-            #[cfg(target_arch = "aarch64")]
+            #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
             unsafe {
                 (*sized_string).c_string.as_mut_ptr().add(i).write(c as u8)
             };
 
-            #[cfg(not(target_arch = "aarch64"))]
+            #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
             unsafe {
                 (*sized_string).c_string.as_mut_ptr().add(i).write(c as i8)
             };
@@ -1029,7 +1029,7 @@ impl Context {
         for s in YrStringIterator::new(strings_table) {
             let mut prefix_ptr = prefix.as_ptr();
 
-            #[cfg(target_arch = "aarch64")]
+            #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
             unsafe {
                 let mut identifier = (*s).__bindgen_anon_3.identifier.offset(1);
                 while *identifier != '\0' as u8
@@ -1047,7 +1047,7 @@ impl Context {
                 }
             }
 
-            #[cfg(not(target_arch = "aarch64"))]
+            #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
             unsafe {
                 let mut identifier = (*s).__bindgen_anon_3.identifier.offset(1);
                 while *identifier != '\0' as i8
