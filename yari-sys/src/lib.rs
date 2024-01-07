@@ -796,7 +796,15 @@ impl Context {
 
         // Copy the string
         for (i, c) in s.bytes().enumerate() {
-            unsafe { (*sized_string).c_string.as_mut_ptr().add(i).write(c as i8) };
+            #[cfg(target_arch = "aarch64")]
+            unsafe {
+                (*sized_string).c_string.as_mut_ptr().add(i).write(c as u8)
+            };
+
+            #[cfg(not(target_arch = "aarch64"))]
+            unsafe {
+                (*sized_string).c_string.as_mut_ptr().add(i).write(c as i8)
+            };
         }
 
         // Write NULL byte
@@ -1021,6 +1029,25 @@ impl Context {
         for s in YrStringIterator::new(strings_table) {
             let mut prefix_ptr = prefix.as_ptr();
 
+            #[cfg(target_arch = "aarch64")]
+            unsafe {
+                let mut identifier = (*s).__bindgen_anon_3.identifier.offset(1);
+                while *identifier != '\0' as u8
+                    && *prefix_ptr != '\0' as u8
+                    && *identifier == *prefix_ptr
+                {
+                    identifier = identifier.offset(1);
+                    prefix_ptr = prefix_ptr.offset(1);
+                }
+
+                if (*identifier == '\0' as u8 && *prefix_ptr == '\0' as u8)
+                    || *prefix_ptr == '*' as u8
+                {
+                    return Ok(s);
+                }
+            }
+
+            #[cfg(not(target_arch = "aarch64"))]
             unsafe {
                 let mut identifier = (*s).__bindgen_anon_3.identifier.offset(1);
                 while *identifier != '\0' as i8
