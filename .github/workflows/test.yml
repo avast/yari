@@ -85,3 +85,42 @@ jobs:
         .venv/bin/maturin build 
         .venv/bin/maturin develop 
         .venv/bin/pytest
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: 'latest'
+      - name: Setup msbuild
+        uses: microsoft/setup-msbuild@v1.1
+      - name: Install YARA Dependencies
+        run: nuget.exe restore windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+      - name: Build YARA
+        run: msbuild /m /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset="v142" /p:WindowsTargetPlatformVersion="10.0.19041.0" windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+        shell: cmd
+      - name: Build yari-sys
+        run: |
+          cargo build
+          RUST_LOG=debug cargo test -- --nocapture --show-output --test-threads 1
+        working-directory: ./yari-sys
+      - name: Build Python wheels
+        run: |
+          pip install --upgrade pip
+          python -m venv env
+          . env/Scripts/activate
+          pip install maturin pytest
+          maturin develop
+          pytest tests
+        working-directory: ./yari-py

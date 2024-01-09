@@ -640,8 +640,7 @@ impl Context {
                             &mut res.context.matches_notebook,
                         );
 
-                        res.context.entry_point =
-                            yr_get_entry_point_offset(data, (*block).size);
+                        res.context.entry_point = yr_get_entry_point_offset(data, (*block).size);
                         _yr_scanner_scan_mem_block(&mut **res.context, data, block);
                     }
                 }
@@ -738,7 +737,11 @@ impl Context {
         debug!("Importing module {:?}", module);
 
         let module_name = CString::new(module.as_ref()).expect("Invalid string");
-        let _res = unsafe { yr_modules_load(module_name.as_ptr(), &mut **self.context) };
+        let res = unsafe { yr_modules_load(module_name.as_ptr(), &mut **self.context) };
+        debug!("Loaded module {:?} with result {}", module, res);
+        if res != ERROR_SUCCESS as i32 {
+            return Err(YariError::UnknownModule(module.to_string()));
+        }
 
         let new_module: *mut YR_OBJECT_STRUCTURE = unsafe {
             yr_hash_table_lookup(
@@ -748,9 +751,9 @@ impl Context {
             )
         }
         .cast();
-
+        debug!("Module {:?} has pointer {:?}", module, new_module);
         if new_module.is_null() {
-            return Err(YariError::SymbolNotFound(module.to_string()));
+            return Err(YariError::UnknownModule(module.to_string()));
         }
 
         self.modules.insert(module, new_module);
@@ -1336,6 +1339,7 @@ impl Context {
     }
 
     pub fn dump_module(&mut self, module: Module) -> Result<(), YariError> {
+        debug!("Dumping module {:?}", module);
         self.import_module(module)?;
         match self.modules.get(&module) {
             Some(module) => {
@@ -1464,6 +1468,7 @@ impl Drop for Context {
         debug!("Dropping context");
 
         unsafe { yr_modules_unload_all(&mut **self.context) };
+        debug!("Unloaded modules");
 
         let rules = self.context.rules;
 
@@ -1471,34 +1476,37 @@ impl Drop for Context {
             unsafe {
                 yr_notebook_destroy(self.context.matches_notebook);
             }
+            debug!("Destroyed matches notebook");
         }
 
         // Drop all created filemaps (this should close all opened FDs)
         for file in self.yr_mapped_files.iter_mut() {
             unsafe { yr_filemap_unmap(file) };
         }
+        debug!("Freed filemaps");
 
         unsafe { yr_compiler_destroy(self.compiler) };
+        debug!("Destroyed compiler");
 
         if !self.fallback_scanner.is_null() {
             unsafe { yr_scanner_destroy(self.fallback_scanner) };
+            debug!("Destroyed fallback scanner");
         }
 
-        #[allow(clippy::if_same_then_else)]
-        if self.use_fallback_eval {
-            #[cfg(not(target_os = "windows"))]
-            unsafe {
-                yr_scanner_destroy(&mut **self.context)
-            };
-        } else {
-            unsafe { yr_scanner_destroy(&mut **self.context) };
-        }
+        #[cfg(not(target_os = "windows"))]
+        unsafe {
+            yr_scanner_destroy(&mut **self.context)
+        };
+        debug!("Destroyed scanner");
 
         if !rules.is_null() {
             unsafe { yr_rules_destroy(rules) };
+            debug!("Destroyed rules");
         }
 
         unsafe { yr_finalize() };
+
+        debug!("DONE dropping context");
     }
 }
 
