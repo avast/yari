@@ -28,11 +28,12 @@ jobs:
     - name: Build
       run: cargo build
     - name: Run Rust tests
-      run: cargo test
+      run: |
+        RUST_LOG=debug cargo test
     - name: Run tests with yari using bundled bindings
       run: |
         cargo clean
-        YARI_USE_BUNDLED_BINDINGS=1 cargo test
+        YARI_USE_BUNDLED_BINDINGS=1 RUST_LOG=debug cargo test
     - uses: actions/setup-python@v4
       with:
         python-version: '3.10'
@@ -70,11 +71,11 @@ jobs:
         CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo build
     - name: Run Rust tests
       run: |
-        CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo test
+        CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" RUST_LOG=debug cargo test
     - name: Run Rust tests with bundled bindings
       run: |
         cargo clean
-        YARI_USE_BUNDLED_BINDINGS=1 CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo test
+        YARI_USE_BUNDLED_BINDINGS=1 CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" RUST_LOG=debug cargo test
     - name: Run Python tests
       working-directory: ./yari-py
       run: |
