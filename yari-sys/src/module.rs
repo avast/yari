@@ -9,6 +9,7 @@ pub static MODULES: &[Module] = &[
     Module::Dotnet,
     Module::Elf,
     Module::Hash,
+    #[cfg(not(target_os = "windows"))]
     Module::Magic,
     #[cfg(feature = "all_modules")]
     Module::Metadata,
