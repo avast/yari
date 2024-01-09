@@ -4,10 +4,12 @@ use yari_sys::Module;
 use yari_sys::{Context, ContextBuilder};
 
 pub fn context() -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     ContextBuilder::default().build().unwrap()
 }
 
 pub fn context_with_cuckoo() -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     let test_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let cuckoo_report = test_root.join("tests/assets/cuckoo.json");
 
@@ -18,6 +20,7 @@ pub fn context_with_cuckoo() -> Context {
 }
 
 fn context_with_sample(path: &str, rule: Option<&str>) -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     let test_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let file = test_root.join(path);
 
@@ -29,14 +32,17 @@ fn context_with_sample(path: &str, rule: Option<&str>) -> Context {
 }
 
 pub fn context_with_elf_sample() -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     context_with_sample("tests/assets/elf_hello_world", None)
 }
 
 pub fn context_with_pe_signed_sample() -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     context_with_sample("tests/assets/pe_signed", None)
 }
 
 pub fn context_with_pe_sample_and_rule() -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     context_with_sample(
         "tests/assets/pe_hello_world",
         Some(
@@ -58,6 +64,7 @@ rule r {
 }
 
 pub fn context_with_elf_sample_and_rule() -> Context {
+    let _ = env_logger::builder().is_test(true).try_init();
     context_with_sample(
         "tests/assets/elf_hello_world",
         Some(
