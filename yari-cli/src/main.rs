@@ -108,7 +108,7 @@ fn main() -> Result<()> {
     match matches.subcommand() {
         Some(("dump", sub_matches)) => {
             let module = Module::from_str(sub_matches.get_one::<String>("MODULE").unwrap())?;
-            context.dump_module(module);
+            context.dump_module(module)?;
         }
         _ => {
             // Start interactive shell

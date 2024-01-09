@@ -730,9 +730,9 @@ impl Context {
     }
 
     /// Import and initialize `module`.
-    fn import_module(&mut self, module: Module) {
+    fn import_module(&mut self, module: Module) -> Result<(), YariError> {
         if self.modules.contains_key(&module) {
-            return;
+            return Ok(());
         }
 
         debug!("Importing module {:?}", module);
@@ -749,8 +749,14 @@ impl Context {
         }
         .cast();
 
+        if new_module.is_null() {
+            return Err(YariError::SymbolNotFound(module.to_string()));
+        }
+
         self.modules.insert(module, new_module);
         self.init_objects_cache(new_module);
+
+        Ok(())
     }
 
     pub fn get_object(&self, path: &str) -> Option<&*mut YR_OBJECT> {
@@ -1148,7 +1154,7 @@ impl Context {
         // Import module used in expression
         let expr_module = expr.get_module();
         if let Some(module) = expr_module {
-            self.import_module(module);
+            self.import_module(module)?;
         }
 
         let rule_ctx = self.get_rule_context(rule_name)?;
@@ -1329,14 +1335,16 @@ impl Context {
         ) as *mut YR_MATCHES;
     }
 
-    pub fn dump_module(&mut self, module: Module) {
-        self.import_module(module);
+    pub fn dump_module(&mut self, module: Module) -> Result<(), YariError> {
+        self.import_module(module)?;
         match self.modules.get(&module) {
             Some(module) => {
                 self.visit_structure(module.cast::<YR_OBJECT>(), 0);
             }
             None => error!("Module '{}' not found", module),
         }
+
+        Ok(())
     }
 
     fn visit_structure(&self, structure_ptr: *const YR_OBJECT, depth: usize) {
