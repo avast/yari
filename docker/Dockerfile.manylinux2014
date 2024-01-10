@@ -70,6 +70,10 @@ RUN cd ./yari-sys/yara \
 
 COPY . /yari
 
+# This is just to cache the cargo index so we don't have to update it from
+# scratch every time which takes long time
+RUN cargo update --dry-run
+
 # An example how to build the Python wheel
 # RUN cd yari-py \
 #     && YARI_USE_BUNDLED_BINDINGS=1 YARI_LIB_DIRS="/usr/x86_64-unknown-linux-gnu/lib/:/usr/lib/x86_64-linux-gnu/" maturin build
