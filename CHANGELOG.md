@@ -1,6 +1,24 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# 0.2.0 (2024-01-10)
+
+NOTE: Many thanks to (@3c7)[https://github.com/3c7]
+
+* Combining aarch64 with linux target_os
+* Implemented conditional compilation for aarch64
+* Implemented macOS (intel) build in Github Actions
+* Implementing Makefile for easier manual build process
+* Update Readme.md: Add installation & info
+* chore(deps): Update deps
+* chore: Add way to link additional libs
+* chore: Stop using deprecated `Python::acquire_gil()`
+* ci: Create dependabot.yml
+* ci: Github Action for building windows wheels
+* ci: Testing Github Actions for Windows
+* feat: Add new argument to `yr_re_compile`
+* fix: Return error when yara module is not found
+
 # 0.1.6 (2023-02-20)
 
 - feat: Start using vanilla YARA API (#19)
