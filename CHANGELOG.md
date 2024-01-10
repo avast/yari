@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+# 0.2.1 (2024-01-10)
+
+* chore: Extend .dockerignore
+* cc57e25 chore: Cache cargo index in manylinux2014 docker image
+* cc55548 chore: Update the lock file
+
 # 0.2.0 (2024-01-10)
 
 NOTE: Many thanks to (@3c7)[https://github.com/3c7]

@@ -1,6 +1,6 @@
 [package]
 name = "yari-py"
-version = "0.2.0"
+version = "0.2.1"
 description = "Python bindings for YARI."
 authors = ["Matej Kastak <matej.kastak@avast.com>"]
 edition = "2021"
