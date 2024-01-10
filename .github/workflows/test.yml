@@ -20,15 +20,19 @@ jobs:
     - name: Install YARA deps
       run: sudo apt-get install -y automake libtool make gcc pkg-config libssl-dev libjansson-dev libmagic-dev
     - name: Build YARA
-      run: cd yari-sys/yara && ./bootstrap.sh && CFLAGS="-fPIC" ./configure --enable-debug --disable-shared --enable-static --enable-cuckoo --enable-magic --enable-dotnet --with-crypto && make
+      run: |
+        cd yari-sys/yara
+        ./bootstrap.sh
+        CFLAGS="-fPIC" ./configure --enable-debug --disable-shared --enable-static --enable-cuckoo --enable-magic --enable-dotnet --with-crypto
+        make
     - name: Build
-      run: cargo build --verbose
+      run: cargo build
     - name: Run Rust tests
-      run: cargo test --verbose
+      run: cargo test
     - name: Run tests with yari using bundled bindings
       run: |
         cargo clean
-        YARI_USE_BUNDLED_BINDINGS=1 cargo test --verbose
+        YARI_USE_BUNDLED_BINDINGS=1 cargo test
     - uses: actions/setup-python@v4
       with:
         python-version: '3.10'
@@ -48,19 +52,69 @@ jobs:
       uses: actions/checkout@v3
       with:
         submodules: 'true'
-    - name: Install (Yara) Dependencies
+    - name: Install YARA deps
       run: brew install autoconf automake libtool pkg-config jansson libmagic openssl python@3.10 python@3.11 python@3.12
     - name: Build Yara
-      run: cd yari-sys/yara && ./bootstrap.sh && CFLAGS="-fPIC -I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" ./configure --enable-debug --disable-shared --enable-static --enable-cuckoo --enable-magic --enable-dotnet --with-crypto && make
+      run: |
+        cd yari-sys/yara
+        ./bootstrap.sh
+        CFLAGS="-fPIC -I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" ./configure --enable-debug --disable-shared --enable-static --enable-cuckoo --enable-magic --enable-dotnet --with-crypto
+        make
     - name: Build Yari (yari-sys)
       run: cd yari-sys && CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo build --release
     - name: Build Yari (yari-cli)
       run: cd yari-cli && CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo build --release
-    - name: Build Yari (yari-py)
-      run: cd yari-py && python3.12 -mvenv .venv && .venv/bin/pip install maturin pytest && CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" .venv/bin/maturin build --release -i python3.10 -i python3.11 -i python3.12
     - name: Run Rust tests
-      run: CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo test --verbose
+      run: CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo test
     - name: Run Rust tests with bundled bindings
-      run: cargo clean && YARI_USE_BUNDLED_BINDINGS=1 CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo test --verbose
+      run: |
+        cargo clean
+        YARI_USE_BUNDLED_BINDINGS=1 CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" cargo test
     - name: Run Python tests
-      run: cd yari-py && .venv/bin/maturin develop && .venv/bin/pytest
+      run: |
+        cd yari-py
+        python3.12 -m venv .venv 
+        .venv/bin/pip install maturin pytest 
+        CFLAGS="-I$(brew --prefix)/include" LDFLAGS="-L$(brew --prefix)/lib $LDFLAGS" LIBRARY_PATH="$(brew --prefix)/lib:$LIBRARY_PATH" .venv/bin/maturin build -i python3.10 -i python3.11 -i python3.12
+        .venv/bin/maturin build 
+        .venv/bin/maturin develop 
+        .venv/bin/pytest
+  build-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+      - name: Setup Nuget.exe
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: 'latest'
+      - name: Setup msbuild
+        uses: microsoft/setup-msbuild@v1.1
+      - name: Install YARA Dependencies
+        run: nuget.exe restore windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+      - name: Build YARA
+        run: msbuild /m /p:Platform=x64 /p:Configuration=Release /p:PlatformToolset="v142" /p:WindowsTargetPlatformVersion="10.0.19041.0" windows/vs2017/yara.sln
+        working-directory: ./yari-sys/yara
+        shell: cmd
+      - name: Build yari-sys
+        run: |
+          cargo build
+          RUST_LOG=debug cargo test -- --nocapture --show-output --test-threads 1
+        working-directory: ./yari-sys
+      - name: Build Python wheels
+        run: |
+          pip install --upgrade pip
+          python -m venv env
+          . env/Scripts/activate
+          pip install maturin pytest
+          maturin develop
+          pytest tests
+        working-directory: ./yari-py

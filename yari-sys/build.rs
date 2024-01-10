@@ -32,6 +32,8 @@ fn link_lib(name: &str) {
 #[cfg(target_os = "windows")]
 fn link_windows() {
     link_lib("libyara64");
+    link_lib("crypt32");
+    link_lib("user32");
 }
 
 #[cfg(any(target_os = "linux", target_os = "macos"))]
