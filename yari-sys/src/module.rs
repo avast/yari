@@ -14,6 +14,8 @@ pub static MODULES: &[Module] = &[
     #[cfg(feature = "all_modules")]
     Module::Metadata,
     Module::Math,
+    #[cfg(feature = "all_modules")]
+    Module::Pdf,
     Module::Pe,
     #[cfg(feature = "all_modules")]
     Module::Phish,
@@ -33,6 +35,8 @@ pub enum Module {
     #[cfg(feature = "all_modules")]
     Metadata,
     Math,
+    #[cfg(feature = "all_modules")]
+    Pdf,
     Pe,
     #[cfg(feature = "all_modules")]
     Phish,
@@ -63,6 +67,8 @@ impl std::str::FromStr for Module {
             "math" => Ok(Module::Math),
             #[cfg(feature = "all_modules")]
             "metadata" => Ok(Module::Metadata),
+            #[cfg(feature = "all_modules")]
+            "pdf" => Ok(Module::Pdf),
             "pe" => Ok(Module::Pe),
             #[cfg(feature = "all_modules")]
             "phish" => Ok(Module::Phish),
@@ -85,6 +91,8 @@ impl AsRef<str> for Module {
             Module::Math => "math",
             #[cfg(feature = "all_modules")]
             Module::Metadata => "metadata",
+            #[cfg(feature = "all_modules")]
+            Module::Pdf => "pdf",
             Module::Pe => "pe",
             #[cfg(feature = "all_modules")]
             Module::Phish => "phish",
