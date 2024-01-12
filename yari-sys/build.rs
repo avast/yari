@@ -100,13 +100,20 @@ fn main() {
     );
 
     // Linux link dir
-    let libyara_dir = yara_repo_root.join("libyara").join(".libs");
-    let libyara_includes = yara_repo_root.join("libyara").join("include");
-
+    let libyara_dir = yara_repo_root.join(".libs");
     println!(
         "cargo:rustc-link-search={}",
-        libyara_dir.to_str().expect("cannot find YARA libraries")
+        libyara_dir.to_str().expect("cannot convert libyara_dir to string")
     );
+
+    let libyara_dir = yara_repo_root.join("libyara").join(".libs");
+    println!(
+        "cargo:rustc-link-search={}",
+        libyara_dir.to_str().expect("cannot convert libyara_dir to string")
+    );
+
+    let libyara_includes = yara_repo_root.join("libyara").join("include");
+
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
