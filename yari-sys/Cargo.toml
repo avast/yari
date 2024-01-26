@@ -8,7 +8,7 @@ license = "MIT"
 include = ["LICENSE-THIRD-PARTY"]
 
 [dependencies]
-log = "0.4.17"
+log = "0.4.20"
 nom = "7.1.3"
 regex = "1.7.3"
 thiserror = "1.0.40"
