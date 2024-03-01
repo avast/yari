@@ -1,5 +1,1 @@
-# Security policy
-
-If you believe you found a security vulnerability in YARI, please report it by sending email to `threatlabs.yara@avast.com`.
-
-All valid reports will be credited in the security policy and `CHANGELOG.md`. We offer no monetary compensation.
+Please use [this submission form](https://www.nortonlifelock.com/us/en/contact-us/report-a-security-vulnerability/) to report any (potential) security vulnerabilities. Provide as much details as possible.
