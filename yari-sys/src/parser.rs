@@ -236,27 +236,31 @@ fn arguments(input: &str) -> IResult<&str, Vec<Argument>> {
 fn function_call(input: &str) -> IResult<&str, (&str, Vec<Argument>)> {
     let res = delimited(whitespace, pair(identifier_multi, arguments), whitespace)(input);
 
-    if res.is_ok() && !res.as_ref().unwrap().0.is_empty() {
-        Err(Err::Error(nom::error::Error::new(
-            res.as_ref().unwrap().0,
-            ErrorKind::Verify,
-        )))
-    } else {
-        res
+    if let Ok(ref inner) = res {
+        if !inner.0.is_empty() {
+            return Err(Err::Error(nom::error::Error::new(
+                inner.0,
+                ErrorKind::Verify,
+            )));
+        }
     }
+
+    res
 }
 
 fn value_access(input: &str) -> IResult<&str, &str> {
     let res = delimited(whitespace, identifier_multi, whitespace)(input);
 
-    if res.is_ok() && !res.as_ref().unwrap().0.is_empty() {
-        Err(Err::Error(nom::error::Error::new(
-            res.as_ref().unwrap().0,
-            ErrorKind::Verify,
-        )))
-    } else {
-        res
+    if let Ok(ref inner) = res {
+        if !inner.0.is_empty() {
+            return Err(Err::Error(nom::error::Error::new(
+                inner.0,
+                ErrorKind::Verify,
+            )));
+        }
     }
+
+    res
 }
 
 fn string_index(input: &str) -> IResult<&str, i64> {
@@ -313,14 +317,17 @@ fn string_operation(input: &str) -> IResult<&str, (StrOperation, &str, Option<i6
         whitespace,
     )(input);
 
-    if res.is_ok() && !res.as_ref().unwrap().0.is_empty() {
-        Err(Err::Error(nom::error::Error::new(
-            res.as_ref().unwrap().0,
-            ErrorKind::Verify,
-        )))
-    } else {
-        res
+    // Check if we still have unconsumed input and return error if so
+    if let Ok(ref inner) = res {
+        if !inner.0.is_empty() {
+            return Err(Err::Error(nom::error::Error::new(
+                inner.0,
+                ErrorKind::Verify,
+            )));
+        }
     }
+
+    res
 }
 
 fn complex_value(input: &str) -> IResult<&str, &str> {
