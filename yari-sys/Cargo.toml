@@ -11,7 +11,7 @@ include = ["LICENSE-THIRD-PARTY"]
 log = "0.4.21"
 nom = "7.1.3"
 regex = "1.10.3"
-thiserror = "1.0.57"
+thiserror = "1.0.61"
 lazy_static = "1.4.0"
 
 [build-dependencies]
