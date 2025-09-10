@@ -3,6 +3,7 @@ use pyo3::exceptions::PyException;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use pyo3::types::PyString;
+use pyo3::Bound;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -27,19 +28,19 @@ struct Context {
 /// Same applies to structures and dictionaries.
 fn yr_value_to_py_object(py: Python<'_>, yr_value: &YrValue) -> PyObject {
     match yr_value {
-        YrValue::Integer(i) => i.into_py(py),
-        YrValue::Float(f) => f.into_py(py),
-        YrValue::String(s) => s.as_ref().into_py(py),
+        YrValue::Integer(i) => i.into_pyobject(py).unwrap().into_any().unbind(),
+        YrValue::Float(f) => f.into_pyobject(py).unwrap().into_any().unbind(),
+        YrValue::String(s) => s.as_ref().into_pyobject(py).unwrap().into_any().unbind(),
         YrValue::Dictionary(d) => d
             .iter()
             .map(|(k, v)| (k, yr_value_to_py_object(py, v)))
             .collect::<HashMap<_, _>>()
-            .into_py(py),
+            .into_pyobject(py).unwrap().into_any().unbind(),
         YrValue::Array(a) => a
             .iter()
             .map(|val| yr_value_to_py_object(py, val))
             .collect::<Vec<_>>()
-            .into_py(py),
+            .into_pyobject(py).unwrap().into_any().unbind(),
         YrValue::Structure(s) => s
             .as_ref()
             .map(|map| {
@@ -47,7 +48,7 @@ fn yr_value_to_py_object(py: Python<'_>, yr_value: &YrValue) -> PyObject {
                     .map(|(k, v)| (k, yr_value_to_py_object(py, v)))
                     .collect::<HashMap<_, _>>()
             })
-            .into_py(py),
+            .into_pyobject(py).unwrap().into_any().unbind(),
     }
 }
 
@@ -59,26 +60,27 @@ impl Context {
     /// any module data. `sample` and `rule` are expected to be valid paths. `module_data` is a
     /// python dictionary where key is a module name and data is a path to a file.
     #[new]
+    #[pyo3(signature = (sample=None, rule_string=None, rule_path=None, module_data=None))]
     fn new(
-        sample: Option<&PyString>,
-        rule_string: Option<&PyString>,
-        rule_path: Option<&PyString>,
-        module_data: Option<&PyDict>,
+        sample: Option<Bound<PyString>>,
+        rule_string: Option<Bound<PyString>>,
+        rule_path: Option<Bound<PyString>>,
+        module_data: Option<Bound<PyDict>>,
     ) -> PyResult<Self> {
         let mut builder = ContextBuilder::default();
 
         if let Some(sample) = sample {
-            builder = builder.with_sample(Some(sample.to_string()));
+            builder = builder.with_sample(Some(sample.to_str()?.to_owned()));
         }
 
         // Use either `rule_string` or `rule_path`. Invalid configuration of arguments raises
         // exception.
         match (rule_string, rule_path) {
             (Some(rule_string), None) => {
-                builder = builder.with_rule_string(Some(rule_string.to_string()))
+                builder = builder.with_rule_string(Some(rule_string.to_str()?.to_owned()))
             }
             (None, Some(rule_path)) => {
-                builder = builder.with_rule_file(Some(rule_path.to_string()))
+                builder = builder.with_rule_file(Some(rule_path.to_str()?.to_owned()))
             }
             (Some(_), Some(_)) => {
                 return Err(YariError::new_err(
@@ -91,7 +93,7 @@ impl Context {
 
         // Add the module data
         if let Some(module_data) = module_data {
-            for (module, data) in module_data {
+            for (module, data) in module_data.iter() {
                 if let (Ok(module), Ok(data)) =
                     (module.downcast::<PyString>(), data.downcast::<PyString>())
                 {
@@ -132,10 +134,10 @@ impl Context {
 }
 
 #[pymodule]
-fn yari(py: Python, m: &PyModule) -> PyResult<()> {
+fn yari(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<Context>()?;
 
-    m.add("YariError", py.get_type::<YariError>())?;
+    m.add("YariError", m.py().get_type::<YariError>())?;
 
     m.add("LICENSES", yari_sys::LICENSES)?;
 
