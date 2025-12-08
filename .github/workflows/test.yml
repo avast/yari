@@ -80,7 +80,7 @@ jobs:
         .venv/bin/maturin develop 
         .venv/bin/pytest
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: bash
